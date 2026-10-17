@@ -27,9 +27,11 @@ class DioClient {
     );
 
     final dio = Dio(customOptions ?? defaultOptions);
+    final auth = authInterceptor ?? AuthInterceptor();
+    auth.attachDio(dio);
 
     dio.interceptors.addAll([
-      authInterceptor ?? AuthInterceptor(),
+      auth,
       loggerInterceptor ?? const SanitizedLoggerInterceptor(),
     ]);
 
