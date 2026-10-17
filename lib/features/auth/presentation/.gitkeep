@@ -1,0 +1,2 @@
+# Auth Presentation Layer
+# Contains Riverpod state notifiers/controllers, screens, and feature-specific widgets.

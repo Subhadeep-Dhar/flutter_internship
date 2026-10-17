@@ -1,0 +1,2 @@
+# Profile Presentation Layer
+# Contains ProfileNotifier / Riverpod providers, ProfilePage, and account management widgets.

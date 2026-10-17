@@ -1,0 +1,2 @@
+# Cart Data Layer
+# Contains CartItemModel, CartLocalDataSource (SharedPreferences), and CartRepositoryImpl.

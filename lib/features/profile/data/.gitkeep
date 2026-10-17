@@ -1,0 +1,2 @@
+# Profile Data Layer
+# Contains UserModel DTO, ProfileRemoteDataSource, and ProfileRepositoryImpl.

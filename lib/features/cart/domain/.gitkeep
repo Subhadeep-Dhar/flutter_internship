@@ -1,0 +1,3 @@
+# Cart Domain Layer
+# Contains pure Dart CartItem entity, CartRepository interface, and cart computation use cases.
+# No Flutter, Dio, or infrastructure package imports.

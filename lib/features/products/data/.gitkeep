@@ -1,0 +1,2 @@
+# Products Data Layer
+# Contains ProductModel DTOs, ProductRemoteDataSource, and ProductRepositoryImpl.

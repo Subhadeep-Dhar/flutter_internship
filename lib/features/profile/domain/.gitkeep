@@ -1,0 +1,3 @@
+# Profile Domain Layer
+# Contains pure Dart UserProfile entity, ProfileRepository interface, and GetProfileUseCase.
+# No Flutter, Dio, or infrastructure package imports.

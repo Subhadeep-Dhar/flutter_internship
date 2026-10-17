@@ -1,0 +1,3 @@
+# Products Domain Layer
+# Contains pure Dart Product entities, ProductRepository interface, and use cases (e.g. GetProductsUseCase).
+# No Flutter, Dio, or infrastructure package imports.

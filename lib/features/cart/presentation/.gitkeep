@@ -1,0 +1,2 @@
+# Cart Presentation Layer
+# Contains CartNotifier / Riverpod providers, CartPage, and checkout flow widgets.
