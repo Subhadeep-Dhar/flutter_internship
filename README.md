@@ -81,12 +81,54 @@ ShopSphere uses an earthy, premium design system configured with Material 3:
 * **Base URL**: `https://dummyjson.com`
 * **Timeouts**: 15 seconds connect, receive, and send timeouts.
 * **Sanitized Debug Logging**: `SanitizedLoggerInterceptor` automatically strips passwords, access tokens, refresh tokens, and authorization headers from debug console output to prevent credential leakage.
-* **Auth Extension Point**: `AuthInterceptor` injects `Bearer` tokens via an `AuthTokenProvider` contract, establishing a clean path for session injection and future token refresh.
+* **Auth Extension Point**: `AuthInterceptor` injects `Bearer` tokens via an `AuthTokenProvider` contract, establishing a clean path for session injection and automatic token refresh.
+* **Single-Flight Token Refresh**:
+  * Concurrent 401 responses share a single synchronized in-flight refresh request (`_performSingleFlightRefresh`).
+  * Avoids duplicate refresh calls when multiple requests fail with 401 simultaneously.
+  * Retries the original request at most once (`x-shopsphere-retry` header guard).
+  * Clears session and triggers `onAuthenticationExpired` on unrecoverable 401/403 refresh failure.
+  * Excludes public authentication endpoints (`/auth/login`, `/auth/refresh`) to prevent recursion loops.
 * **Error Mapping**: `ErrorHandler` systematically translates low-level `DioException`, `SocketException`, and HTTP 4xx/5xx status codes into strongly typed domain `Failure` abstractions.
 
 ---
 
-## 6. Getting Started
+## 6. Authentication Architecture (Phase 2)
+
+ShopSphere implements an end-to-end, testable, and secure authentication flow:
+
+### 1. Domain Layer (`lib/features/auth/domain/`)
+* **Entities**:
+  * `User`: Strongly typed, null-safe entity representing the authenticated customer profile (`id`, `username`, `email`, `firstName`, `lastName`, `gender`, `image`, `phone`).
+  * `AuthTokens`: Immutable access and refresh token container.
+* **Repository Interface**: `AuthRepository` pure Dart contract defining `login()`, `getCurrentUser()`, `restoreSession()`, `logout()`, `refreshTokens()`, and `hasStoredTokens()`.
+* **Use Cases**: Single-responsibility domain operations:
+  * `LoginUseCase`
+  * `RestoreSessionUseCase`
+  * `GetCurrentUserUseCase`
+  * `LogoutUseCase`
+* **Result Monad**: Sealed `Result<T>` (`Success<T>`, `Error<T>`) returning explicit typed failures rather than throwing or swallowing errors.
+
+### 2. Data Layer (`lib/features/auth/data/`)
+* **Data Sources**:
+  * `AuthRemoteDataSource`: Consumes DummyJSON endpoints (`POST /auth/login`, `GET /auth/me`, `POST /auth/refresh`).
+  * `AuthLocalDataSource`: Backed by `flutter_secure_storage` for hardware-backed token encryption. **Passwords are never persisted.**
+* **Models**: `UserModel` and `AuthTokensModel` with defensive, null-safe JSON parsing handling optional API properties safely.
+* **Repository Implementation**: `AuthRepositoryImpl` maps DummyJSON HTTP 400 responses to a clean, user-facing failure (`"Invalid username or password."`) and clears stored tokens when sessions expire.
+
+### 3. State Management & Navigation
+* **Riverpod 3 Controller**: `AuthNotifier` exposes explicit `AuthState` transitions:
+  * `AuthInitial`: App initialization.
+  * `AuthLoading`: Network operation in flight.
+  * `AuthAuthenticated(user)`: Verified customer session.
+  * `AuthUnauthenticated([message])`: Logged out or login failed with friendly inline error.
+  * `AuthSessionExpired`: Session invalidated; prompts user to log in again.
+  * `AuthSessionCheckFailed(message)`: Startup network failure; provides retry button without falsely invalidating stored tokens.
+* **GoRouter Integration**: `_AuthRouterListenable` notifies `GoRouter` upon state changes. Top-level route redirects guard `/login`, `/splash`, `/home`, and `/profile` to ensure users cannot navigate to unauthorized screens.
+* **Session Restoration**: On app launch, `SplashPage` verifies the active session against `GET /auth/me`. If connectivity fails, it presents an honest retry screen rather than blindly trusting token presence.
+
+---
+
+## 7. Getting Started
 
 ### Prerequisites
 * Flutter SDK: `3.44.1` (channel `stable`)
@@ -119,18 +161,22 @@ flutter run
 
 ---
 
-## 7. Test Suite Status
+## 8. Test Suite Status
 
-Foundational unit and widget tests covering error mapping, network logging, auth interceptors, endpoints, breakpoints, and debouncing:
+Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier state transitions, interceptor refresh concurrency, and widget interactions:
 
 ```bash
 flutter test
 ```
-* Status: **30 / 30 tests passing**
+* Status: **79 / 79 tests passing**
+* Static Analysis: **0 issues found** across all 55 files.
 
 ---
 
-## 8. Verified Test Credentials (DummyJSON)
+## 9. Verified Test Credentials (DummyJSON)
 
+The following credentials are provided by DummyJSON for manual testing:
 * **Username**: `emilys`
 * **Password**: `emilyspass`
+
+*(Note: These credentials are strictly for manual verification and are never hard-coded into application logic).*
