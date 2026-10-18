@@ -72,6 +72,11 @@ class SerializationFailure extends Failure {
   });
 }
 
+/// Represents client-side input validation or domain constraint violations.
+class ValidationFailure extends Failure {
+  const ValidationFailure({required super.message});
+}
+
 /// Catch-all failure for unexpected runtime exceptions.
 class UnknownFailure extends Failure {
   const UnknownFailure({
