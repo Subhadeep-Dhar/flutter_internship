@@ -91,7 +91,7 @@ void main() {
     });
 
     testWidgets(
-      'renders without RenderFlex overflow when text scaling is 1.3x',
+      'renders without RenderFlex overflow when text scaling is 1.3x at compact card height',
       (tester) async {
         tester.view.physicalSize = const Size(360, 640);
         tester.view.devicePixelRatio = 1.0;
@@ -111,7 +111,8 @@ void main() {
               home: const Scaffold(
                 body: SizedBox(
                   width: 170,
-                  height: 310,
+                  height:
+                      255, // Compact 0.67 aspect ratio height (170 / 0.67 ≈ 253.7dp)
                   child: ProductCard(product: tProduct),
                 ),
               ),

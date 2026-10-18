@@ -174,7 +174,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     ),
             ),
-            onPressed: () => context.push(AppRoutes.profile),
+            onPressed: () => context.go(AppRoutes.profile),
           ),
 
           // Logout Action with confirmation modal
@@ -278,9 +278,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       selectedIndex: 0,
       onDestinationSelected: (index) {
         if (index == 1) {
-          context.push(AppRoutes.cart);
+          context.go(AppRoutes.cart);
         } else if (index == 2) {
-          context.push(AppRoutes.profile);
+          context.go(AppRoutes.profile);
         } else if (index == 0) {
           if (_scrollController.hasClients) {
             _scrollController.animateTo(
@@ -326,9 +326,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       selectedIndex: 0,
       onDestinationSelected: (index) {
         if (index == 1) {
-          context.push(AppRoutes.cart);
+          context.go(AppRoutes.cart);
         } else if (index == 2) {
-          context.push(AppRoutes.profile);
+          context.go(AppRoutes.profile);
         } else if (index == 0) {
           if (_scrollController.hasClients) {
             _scrollController.animateTo(
@@ -539,6 +539,18 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
 
     // 4. Products Grid with Pull-to-Refresh & Infinite Scroll
+    final width = MediaQuery.sizeOf(context).width;
+    final screenType = Breakpoints.fromWidth(width);
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final double childAspectRatio;
+    if (isExpanded) {
+      childAspectRatio = 0.80;
+    } else if (screenType == ScreenType.medium) {
+      childAspectRatio = 0.78;
+    } else {
+      childAspectRatio = textScale > 1.1 ? 0.67 : (width < 350 ? 1.15 : 0.78);
+    }
+
     return RefreshIndicator(
       color: AppColors.forestGreen,
       onRefresh: () => notifier.refresh(),
@@ -552,7 +564,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: columnCount,
-                childAspectRatio: 0.55,
+                childAspectRatio: childAspectRatio,
                 crossAxisSpacing: AppSpacing.md,
                 mainAxisSpacing: AppSpacing.md,
               ),

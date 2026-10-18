@@ -71,7 +71,7 @@ class ProductCard extends StatelessWidget {
                 Stack(
                   children: [
                     AspectRatio(
-                      aspectRatio: 1.25,
+                      aspectRatio: 1.45,
                       child: ClipRRect(
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(AppSpacing.radiusMd - 1),
@@ -186,9 +186,11 @@ class ProductCard extends StatelessWidget {
 
                 // Product Details
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xs + 2,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.sm,
+                    AppSpacing.xs + 2,
+                    AppSpacing.sm,
+                    AppSpacing.xs,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,10 +260,9 @@ class ProductCard extends StatelessWidget {
                       const SizedBox(height: 4.0),
 
                       // Price Row
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 6.0,
-                        runSpacing: 2.0,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
                             '\$${product.effectivePrice.toStringAsFixed(2)}',
@@ -273,16 +274,22 @@ class ProductCard extends StatelessWidget {
                             ),
                           ),
                           if (product.discountPercentage != null &&
-                              product.discountPercentage! > 0)
-                            Text(
-                              '\$${product.price.toStringAsFixed(2)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                decoration: TextDecoration.lineThrough,
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : AppColors.textTertiary,
+                              product.discountPercentage! > 0) ...[
+                            const SizedBox(width: 6.0),
+                            Flexible(
+                              child: Text(
+                                '\$${product.price.toStringAsFixed(2)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  decoration: TextDecoration.lineThrough,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.textTertiary,
+                                ),
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ],

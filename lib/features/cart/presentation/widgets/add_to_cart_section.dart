@@ -76,7 +76,10 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
             textColor: isDark
                 ? AppColors.darkForestGreen
                 : AppColors.forestGreen,
-            onPressed: () => context.push(AppRoutes.cart),
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              context.go(AppRoutes.cart);
+            },
           ),
         ),
       );

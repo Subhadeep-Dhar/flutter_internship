@@ -35,7 +35,7 @@ class CartBadgeIconButton extends ConsumerWidget {
             tooltip: 'Shopping Cart',
             constraints: const BoxConstraints(minWidth: 48.0, minHeight: 48.0),
             onPressed: () {
-              context.push(AppRoutes.cart);
+              context.go(AppRoutes.cart);
             },
           ),
           if (itemCount > 0)

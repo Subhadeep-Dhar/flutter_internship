@@ -50,6 +50,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState.isLoading;
 
@@ -61,7 +62,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     };
 
     return Scaffold(
-      backgroundColor: AppColors.ivoryBackground,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.ivoryBackground,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -80,24 +83,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         width: 72.0,
                         height: 72.0,
                         decoration: BoxDecoration(
-                          color: AppColors.forestGreen,
+                          color: isDark
+                              ? AppColors.darkForestGreen
+                              : AppColors.forestGreen,
                           borderRadius: BorderRadius.circular(
                             AppSpacing.radiusLg,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.forestGreen.withValues(
-                                alpha: 0.2,
-                              ),
+                              color:
+                                  (isDark
+                                          ? AppColors.darkForestGreen
+                                          : AppColors.forestGreen)
+                                      .withValues(alpha: 0.2),
                               blurRadius: 16.0,
                               offset: const Offset(0, 6),
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.shopping_bag_outlined,
                           size: 36.0,
-                          color: Colors.white,
+                          color: isDark
+                              ? AppColors.darkBackground
+                              : Colors.white,
                         ),
                       ),
                     ),
@@ -106,7 +115,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       'Welcome to ShopSphere',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.headlineMedium?.copyWith(
-                        color: AppColors.forestGreenDark,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.forestGreenDark,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -115,7 +126,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       'Sign in to explore curated products & deals',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.mutedSage,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.mutedSage,
                       ),
                     ),
                     AppSpacing.gapXxl,
@@ -123,6 +136,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     // Inline Error / Expired Session Banner
                     if (errorMessage != null) ...[
                       Container(
+                        key: const ValueKey('login_error_banner'),
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.lg,
                           vertical: AppSpacing.md,
@@ -165,9 +179,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                     // Username Input
                     TextFormField(
+                      key: const ValueKey('login_username_field'),
                       controller: _usernameController,
                       focusNode: _usernameFocusNode,
                       enabled: !isLoading,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      cursorColor: isDark
+                          ? AppColors.darkForestGreen
+                          : AppColors.forestGreen,
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.text,
                       autofillHints: const [AutofillHints.username],
@@ -190,10 +214,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                     // Password Input with Visibility Toggle
                     TextFormField(
+                      key: const ValueKey('login_password_field'),
                       controller: _passwordController,
                       focusNode: _passwordFocusNode,
                       obscureText: _obscurePassword,
                       enabled: !isLoading,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      cursorColor: isDark
+                          ? AppColors.darkForestGreen
+                          : AppColors.forestGreen,
                       textInputAction: TextInputAction.done,
                       keyboardType: TextInputType.visiblePassword,
                       autofillHints: const [AutofillHints.password],
@@ -233,23 +267,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                     // Submit Button with Loading State & min 48dp height
                     FilledButton(
+                      key: const ValueKey('login_submit_button'),
                       onPressed: isLoading ? null : _submit,
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.forestGreen,
-                        foregroundColor: Colors.white,
+                        backgroundColor: isDark
+                            ? AppColors.darkForestGreen
+                            : AppColors.forestGreen,
+                        foregroundColor: isDark
+                            ? AppColors.darkBackground
+                            : Colors.white,
                         minimumSize: const Size(
                           double.infinity,
                           AppSpacing.minTapTarget,
                         ),
                       ),
                       child: isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 22.0,
                               height: 22.0,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                                  isDark
+                                      ? AppColors.darkBackground
+                                      : Colors.white,
                                 ),
                               ),
                             )
@@ -259,30 +300,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                     // Test credentials helper banner (non-hardcoded, guide for reviewers)
                     Container(
+                      key: const ValueKey('login_test_credentials'),
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: AppColors.ivorySurfaceVariant,
+                        color: isDark
+                            ? AppColors.darkSurface
+                            : AppColors.ivorySurfaceVariant,
                         borderRadius: BorderRadius.circular(
                           AppSpacing.radiusMd,
                         ),
-                        border: Border.all(color: AppColors.ivoryBorder),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : AppColors.ivoryBorder,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.info_outline_rounded,
                                 size: 16.0,
-                                color: AppColors.mutedSage,
+                                color: isDark
+                                    ? AppColors.darkMutedSage
+                                    : AppColors.mutedSage,
                               ),
                               AppSpacing.gapSm,
                               Text(
                                 'Assignment Test Account',
                                 style: theme.textTheme.labelMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.forestGreenDark,
+                                  color: isDark
+                                      ? AppColors.darkForestGreen
+                                      : AppColors.forestGreenDark,
                                 ),
                               ),
                             ],
@@ -291,7 +343,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           Text(
                             'Username: emilys  •  Password: emilyspass',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
                               fontFamily: 'monospace',
                             ),
                           ),

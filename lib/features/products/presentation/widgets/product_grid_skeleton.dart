@@ -52,6 +52,16 @@ class _ProductGridSkeletonState extends State<ProductGridSkeleton>
     final cardBg = isDark ? AppColors.darkSurface : AppColors.ivorySurface;
     final borderColor = isDark ? AppColors.darkBorder : AppColors.ivoryBorder;
 
+    final screenType = Breakpoints.fromWidth(width);
+    final double childAspectRatio;
+    if (width >= Breakpoints.expandedMinWidth) {
+      childAspectRatio = 0.80;
+    } else if (screenType == ScreenType.medium) {
+      childAspectRatio = 0.78;
+    } else {
+      childAspectRatio = width < 350 ? 1.15 : 0.78;
+    }
+
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -61,7 +71,7 @@ class _ProductGridSkeletonState extends State<ProductGridSkeleton>
           shrinkWrap: true,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columnCount,
-            childAspectRatio: 0.68,
+            childAspectRatio: childAspectRatio,
             crossAxisSpacing: AppSpacing.md,
             mainAxisSpacing: AppSpacing.md,
           ),
@@ -78,7 +88,7 @@ class _ProductGridSkeletonState extends State<ProductGridSkeleton>
                 children: [
                   // Image Placeholder
                   AspectRatio(
-                    aspectRatio: 1.1,
+                    aspectRatio: 1.45,
                     child: Container(
                       decoration: BoxDecoration(
                         color: baseColor.withValues(alpha: _animation.value),
@@ -91,7 +101,12 @@ class _ProductGridSkeletonState extends State<ProductGridSkeleton>
 
                   // Text Placeholders
                   Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.sm,
+                      AppSpacing.xs + 2,
+                      AppSpacing.sm,
+                      AppSpacing.xs,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -138,7 +153,22 @@ class _ProductGridSkeletonState extends State<ProductGridSkeleton>
                             ),
                           ),
                         ),
-                        AppSpacing.gapMd,
+                        const SizedBox(height: 6.0),
+
+                        // Rating line
+                        Container(
+                          width: 48.0,
+                          height: 12.0,
+                          decoration: BoxDecoration(
+                            color: baseColor.withValues(
+                              alpha: _animation.value,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusXs,
+                            ),
+                          ),
+                        ),
+                        AppSpacing.gapSm,
 
                         // Price
                         Container(

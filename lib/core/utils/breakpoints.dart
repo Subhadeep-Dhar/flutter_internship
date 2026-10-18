@@ -39,7 +39,7 @@ class Breakpoints {
 
   /// Returns the responsive product grid cross-axis column count for a given width.
   static int gridColumnCount(double width) {
-    if (width < 380) {
+    if (width < 350) {
       return 1;
     } else if (width < mediumMinWidth) {
       return 2;

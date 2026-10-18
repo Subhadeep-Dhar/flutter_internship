@@ -141,17 +141,75 @@ class AppTheme {
         ),
         hintStyle: textTheme.bodyMedium?.copyWith(
           color: AppColors.textTertiary,
+          fontWeight: FontWeight.w400,
         ),
-        labelStyle: textTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
-        ),
+        labelStyle: WidgetStateTextStyle.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.error,
+              fontWeight: FontWeight.w600,
+            );
+          }
+          if (states.contains(WidgetState.focused)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.forestGreen,
+              fontWeight: FontWeight.w600,
+            );
+          }
+          return textTheme.bodyMedium!.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          );
+        }),
+        floatingLabelStyle: WidgetStateTextStyle.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.error,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          if (states.contains(WidgetState.focused)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.forestGreen,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return textTheme.bodyMedium!.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          );
+        }),
+        prefixIconColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return AppColors.error;
+          }
+          if (states.contains(WidgetState.focused)) {
+            return AppColors.forestGreen;
+          }
+          return AppColors.textSecondary;
+        }),
+        suffixIconColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return AppColors.error;
+          }
+          if (states.contains(WidgetState.focused)) {
+            return AppColors.forestGreen;
+          }
+          return AppColors.textSecondary;
+        }),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.ivoryBorder),
+          borderSide: const BorderSide(
+            color: AppColors.ivoryBorder,
+            width: 1.2,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.ivoryBorder),
+          borderSide: const BorderSide(
+            color: AppColors.ivoryBorder,
+            width: 1.2,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -162,7 +220,7 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.error),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -219,6 +277,58 @@ class AppTheme {
         color: AppColors.ivoryBorder,
         thickness: 1,
         space: 1,
+      ),
+
+      // Navigation Rail Theme
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: AppColors.ivorySurface,
+        indicatorColor: AppColors.forestGreenContainer,
+        selectedLabelTextStyle: textTheme.labelSmall?.copyWith(
+          color: AppColors.forestGreen,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelTextStyle: textTheme.labelSmall?.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+        selectedIconTheme: const IconThemeData(
+          color: AppColors.forestGreen,
+          size: 24.0,
+        ),
+        unselectedIconTheme: const IconThemeData(
+          color: AppColors.textSecondary,
+          size: 24.0,
+        ),
+      ),
+
+      // Dialog Theme
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.ivorySurface,
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: AppColors.ivoryBorder, width: 1.0),
+        ),
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.textSecondary,
+        ),
+      ),
+
+      // SnackBar Theme
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.textPrimary,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.textInverse,
+          fontWeight: FontWeight.w500,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        ),
       ),
     );
   }
@@ -300,13 +410,75 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkSurface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+        hintStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.darkTextSecondary,
+          fontWeight: FontWeight.w400,
+        ),
+        labelStyle: WidgetStateTextStyle.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.error,
+              fontWeight: FontWeight.w600,
+            );
+          }
+          if (states.contains(WidgetState.focused)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.darkForestGreen,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return textTheme.bodyMedium!.copyWith(
+            color: AppColors.darkTextSecondary,
+            fontWeight: FontWeight.w600,
+          );
+        }),
+        floatingLabelStyle: WidgetStateTextStyle.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.error,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          if (states.contains(WidgetState.focused)) {
+            return textTheme.bodyMedium!.copyWith(
+              color: AppColors.darkForestGreen,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return textTheme.bodyMedium!.copyWith(
+            color: AppColors.darkTextSecondary,
+            fontWeight: FontWeight.w600,
+          );
+        }),
+        prefixIconColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return AppColors.error;
+          }
+          if (states.contains(WidgetState.focused)) {
+            return AppColors.darkForestGreen;
+          }
+          return AppColors.darkTextSecondary;
+        }),
+        suffixIconColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return AppColors.error;
+          }
+          if (states.contains(WidgetState.focused)) {
+            return AppColors.darkForestGreen;
+          }
+          return AppColors.darkTextSecondary;
+        }),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.darkBorder),
+          borderSide: const BorderSide(color: AppColors.darkBorder, width: 1.2),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.darkBorder),
+          borderSide: const BorderSide(color: AppColors.darkBorder, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -314,6 +486,120 @@ class AppTheme {
             color: AppColors.darkForestGreen,
             width: 2.0,
           ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: const BorderSide(color: AppColors.error, width: 2.0),
+        ),
+      ),
+
+      // Navigation Bar Theme
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 2,
+        height: 64.0,
+        indicatorColor: AppColors.forestGreenDark,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return textTheme.labelSmall?.copyWith(
+              color: AppColors.darkForestGreen,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return textTheme.labelSmall?.copyWith(
+            color: AppColors.darkTextSecondary,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(
+              color: AppColors.darkForestGreen,
+              size: 24.0,
+            );
+          }
+          return const IconThemeData(
+            color: AppColors.darkTextSecondary,
+            size: 24.0,
+          );
+        }),
+      ),
+
+      // Chip Theme
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.darkSurface,
+        selectedColor: AppColors.forestGreenDark,
+        disabledColor: AppColors.darkSurfaceVariant,
+        side: const BorderSide(color: AppColors.darkBorder),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+        ),
+        labelStyle: textTheme.labelMedium?.copyWith(
+          color: AppColors.darkTextPrimary,
+        ),
+      ),
+
+      // Divider Theme
+      dividerTheme: const DividerThemeData(
+        color: AppColors.darkBorder,
+        thickness: 1,
+        space: 1,
+      ),
+
+      // Navigation Rail Theme
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: AppColors.darkSurface,
+        indicatorColor: AppColors.forestGreenDark,
+        selectedLabelTextStyle: textTheme.labelSmall?.copyWith(
+          color: AppColors.darkForestGreen,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelTextStyle: textTheme.labelSmall?.copyWith(
+          color: AppColors.darkTextSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+        selectedIconTheme: const IconThemeData(
+          color: AppColors.darkForestGreen,
+          size: 24.0,
+        ),
+        unselectedIconTheme: const IconThemeData(
+          color: AppColors.darkTextSecondary,
+          size: 24.0,
+        ),
+      ),
+
+      // Dialog Theme
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.darkSurface,
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: AppColors.darkBorder, width: 1.0),
+        ),
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: AppColors.darkTextPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.darkTextSecondary,
+        ),
+      ),
+
+      // SnackBar Theme
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.darkSurfaceVariant,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.darkTextPrimary,
+          fontWeight: FontWeight.w500,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          side: const BorderSide(color: AppColors.darkBorder),
         ),
       ),
     );

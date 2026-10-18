@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shopsphere/core/di/providers.dart';
+import 'package:shopsphere/core/theme/app_colors.dart';
 import 'package:shopsphere/core/theme/app_theme.dart';
 import 'package:shopsphere/features/auth/presentation/controllers/auth_notifier.dart';
 import 'package:shopsphere/features/auth/presentation/controllers/auth_state.dart';
@@ -129,6 +130,46 @@ void main() {
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('maintains legible dark input text style when typing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+
+      final usernameFieldFinder = find.byType(TextFormField).first;
+      await tester.enterText(usernameFieldFinder, 'emilys');
+      await tester.pump();
+
+      final textField = tester.widget<TextField>(
+        find.descendant(
+          of: usernameFieldFinder,
+          matching: find.byType(TextField),
+        ),
+      );
+
+      expect(textField.style?.color, AppColors.textPrimary);
+      expect(textField.controller?.text, 'emilys');
+    });
+
+    testWidgets('applies focused state when user taps into field', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+
+      final usernameFieldFinder = find.byType(TextFormField).first;
+      await tester.tap(usernameFieldFinder);
+      await tester.pump();
+
+      final focusNode = tester
+          .widget<Focus>(
+            find
+                .ancestor(of: usernameFieldFinder, matching: find.byType(Focus))
+                .first,
+          )
+          .focusNode;
+
+      expect(focusNode?.hasFocus, isTrue);
     });
   });
 }
