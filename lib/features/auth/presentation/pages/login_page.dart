@@ -169,6 +169,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       focusNode: _usernameFocusNode,
                       enabled: !isLoading,
                       textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.text,
+                      autofillHints: const [AutofillHints.username],
                       decoration: const InputDecoration(
                         labelText: 'Username',
                         hintText: 'Enter your username',
@@ -193,6 +195,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       obscureText: _obscurePassword,
                       enabled: !isLoading,
                       textInputAction: TextInputAction.done,
+                      keyboardType: TextInputType.visiblePassword,
+                      autofillHints: const [AutofillHints.password],
                       onFieldSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
                         labelText: 'Password',

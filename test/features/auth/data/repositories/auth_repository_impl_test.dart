@@ -44,10 +44,58 @@ void main() {
     });
 
     group('login', () {
-      test('persists tokens and returns User on success', () async {
+      test(
+        'persists tokens and returns User on success (enriching with getMe)',
+        () async {
+          const fullUser = UserModel(
+            id: 1,
+            username: 'emilys',
+            email: 'emily@example.com',
+            firstName: 'Emily',
+            lastName: 'Johnson',
+            phone: '+81 965-431-3024',
+          );
+
+          when(
+            () => mockRemote.login(username: 'emilys', password: 'emilyspass'),
+          ).thenAnswer((_) async => (user: testUser, tokens: testTokens));
+
+          when(
+            () => mockRemote.getMe('access_abc'),
+          ).thenAnswer((_) async => fullUser);
+
+          when(
+            () => mockLocal.saveTokens(
+              accessToken: 'access_abc',
+              refreshToken: 'refresh_xyz',
+            ),
+          ).thenAnswer((_) async {});
+
+          final result = await repository.login(
+            username: 'emilys',
+            password: 'emilyspass',
+          );
+
+          expect(result, isA<Success>());
+          expect(result.dataOrNull, fullUser);
+          expect(result.dataOrNull?.phone, '+81 965-431-3024');
+          verify(
+            () => mockLocal.saveTokens(
+              accessToken: 'access_abc',
+              refreshToken: 'refresh_xyz',
+            ),
+          ).called(1);
+        },
+      );
+
+      test('falls back to login user if getMe fails after login', () async {
         when(
           () => mockRemote.login(username: 'emilys', password: 'emilyspass'),
         ).thenAnswer((_) async => (user: testUser, tokens: testTokens));
+
+        when(
+          () => mockRemote.getMe('access_abc'),
+        ).thenThrow(Exception('Transient timeout'));
 
         when(
           () => mockLocal.saveTokens(
@@ -63,12 +111,6 @@ void main() {
 
         expect(result, isA<Success>());
         expect(result.dataOrNull, testUser);
-        verify(
-          () => mockLocal.saveTokens(
-            accessToken: 'access_abc',
-            refreshToken: 'refresh_xyz',
-          ),
-        ).called(1);
       });
 
       test('maps 400 Invalid credentials to user-friendly failure', () async {

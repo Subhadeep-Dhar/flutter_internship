@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/error/result.dart';
+import '../../domain/entities/user.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/restore_session_usecase.dart';
@@ -56,6 +58,28 @@ class AuthNotifier extends Notifier<AuthState> {
         }
       },
     );
+  }
+
+  /// Refreshes the user profile from the server.
+  /// If the user is already authenticated and a transient network error occurs,
+  /// the existing user data is preserved without wiping the state.
+  Future<Result<User>> refreshProfile() async {
+    final result = await _restoreSessionUseCase();
+
+    result.when(
+      success: (user) {
+        state = AuthState.authenticated(user: user);
+      },
+      error: (failure) {
+        if (failure is UnauthorizedFailure) {
+          state = const AuthState.unauthenticated();
+        } else if (state is! AuthAuthenticated) {
+          state = AuthState.sessionCheckFailed(failure: failure);
+        }
+      },
+    );
+
+    return result;
   }
 
   /// Authenticates using [username] and [password].

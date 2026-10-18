@@ -9,7 +9,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/breakpoints.dart';
 import '../../../../core/widgets/app_empty_view.dart';
 import '../../../../core/widgets/app_error_view.dart';
+import '../../../../core/widgets/logout_confirmation_dialog.dart';
 import '../../../../routing/app_router.dart';
+import '../../../../routing/app_scaffold_shell.dart';
 import '../controllers/product_list_state.dart';
 import '../widgets/category_chips_bar.dart';
 import '../widgets/product_card.dart';
@@ -93,6 +95,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     }
 
+    final hasShell =
+        context.findAncestorWidgetOfExactType<AppScaffoldShell>() != null;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -172,18 +177,18 @@ class _HomePageState extends ConsumerState<HomePage> {
             onPressed: () => context.push(AppRoutes.profile),
           ),
 
-          // Logout Action
+          // Logout Action with confirmation modal
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Logout',
             onPressed: () {
-              ref.read(authNotifierProvider.notifier).logout();
+              LogoutConfirmationDialog.show(context);
             },
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
       ),
-      bottomNavigationBar: isCompact
+      bottomNavigationBar: (isCompact && !hasShell)
           ? _buildBottomNavigationBar(cartCount)
           : null,
       body: SafeArea(
@@ -198,12 +203,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                 isExpanded: false,
               )
             : isMedium
-            ? Row(
-                children: [
-                  _buildNavigationRail(cartCount),
-                  const VerticalDivider(thickness: 1, width: 1),
-                  Expanded(
-                    child: _buildCatalogueColumn(
+            ? (hasShell
+                  ? _buildCatalogueColumn(
                       context: context,
                       productState: productState,
                       productNotifier: productNotifier,
@@ -211,30 +212,63 @@ class _HomePageState extends ConsumerState<HomePage> {
                       theme: theme,
                       columnCount: columnCount,
                       isExpanded: false,
-                    ),
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  _buildNavigationRail(cartCount),
-                  const VerticalDivider(thickness: 1, width: 1),
-                  Expanded(
-                    flex: 5,
-                    child: _buildCatalogueColumn(
-                      context: context,
-                      productState: productState,
-                      productNotifier: productNotifier,
-                      isDark: isDark,
-                      theme: theme,
-                      columnCount: 2,
-                      isExpanded: true,
-                    ),
-                  ),
-                  const VerticalDivider(thickness: 1, width: 1),
-                  Expanded(flex: 6, child: _buildDetailPane(isDark)),
-                ],
-              ),
+                    )
+                  : Row(
+                      children: [
+                        _buildNavigationRail(cartCount),
+                        const VerticalDivider(thickness: 1, width: 1),
+                        Expanded(
+                          child: _buildCatalogueColumn(
+                            context: context,
+                            productState: productState,
+                            productNotifier: productNotifier,
+                            isDark: isDark,
+                            theme: theme,
+                            columnCount: columnCount,
+                            isExpanded: false,
+                          ),
+                        ),
+                      ],
+                    ))
+            : (hasShell
+                  ? Row(
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: _buildCatalogueColumn(
+                            context: context,
+                            productState: productState,
+                            productNotifier: productNotifier,
+                            isDark: isDark,
+                            theme: theme,
+                            columnCount: 2,
+                            isExpanded: true,
+                          ),
+                        ),
+                        const VerticalDivider(thickness: 1, width: 1),
+                        Expanded(flex: 6, child: _buildDetailPane(isDark)),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        _buildNavigationRail(cartCount),
+                        const VerticalDivider(thickness: 1, width: 1),
+                        Expanded(
+                          flex: 5,
+                          child: _buildCatalogueColumn(
+                            context: context,
+                            productState: productState,
+                            productNotifier: productNotifier,
+                            isDark: isDark,
+                            theme: theme,
+                            columnCount: 2,
+                            isExpanded: true,
+                          ),
+                        ),
+                        const VerticalDivider(thickness: 1, width: 1),
+                        Expanded(flex: 6, child: _buildDetailPane(isDark)),
+                      ],
+                    )),
       ),
     );
   }

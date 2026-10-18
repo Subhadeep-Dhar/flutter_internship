@@ -34,7 +34,17 @@ class AuthRepositoryImpl implements AuthRepository {
         refreshToken: authData.tokens.refreshToken,
       );
 
-      return Result.success(authData.user);
+      // DummyJSON's /auth/login returns a partial user without phone number.
+      // Attempt to fetch full profile via /auth/me so that all available fields
+      // (including phone number) are populated immediately. Fall back to login user if needed.
+      try {
+        final fullUser = await remoteDataSource.getMe(
+          authData.tokens.accessToken,
+        );
+        return Result.success(fullUser);
+      } catch (_) {
+        return Result.success(authData.user);
+      }
     } catch (e) {
       final failure = ErrorHandler.handle(e);
       // Map DummyJSON 400 "Invalid credentials" to a clear, friendly failure message

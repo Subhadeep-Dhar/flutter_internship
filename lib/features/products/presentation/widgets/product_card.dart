@@ -67,11 +67,11 @@ class ProductCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product Thumbnail with Discount Badge
+                // Product Thumbnail with Discount Badge (Full image rendering via BoxFit.contain)
                 Stack(
                   children: [
                     AspectRatio(
-                      aspectRatio: 1.3,
+                      aspectRatio: 1.25,
                       child: ClipRRect(
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(AppSpacing.radiusMd - 1),
@@ -80,10 +80,11 @@ class ProductCard extends StatelessWidget {
                           color: isDark
                               ? AppColors.darkSurfaceVariant
                               : AppColors.ivorySurfaceVariant,
+                          padding: const EdgeInsets.all(AppSpacing.xs + 2),
                           child: product.thumbnail.isNotEmpty
                               ? CachedNetworkImage(
                                   imageUrl: product.thumbnail,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                   placeholder: (context, url) => Center(
                                     child: SizedBox(
                                       width: 24.0,
@@ -125,12 +126,12 @@ class ProductCard extends StatelessWidget {
                     if (product.discountPercentage != null &&
                         product.discountPercentage! > 0)
                       Positioned(
-                        top: AppSpacing.sm,
-                        left: AppSpacing.sm,
+                        top: AppSpacing.xs + 2,
+                        left: AppSpacing.xs + 2,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
-                            vertical: 3.0,
+                            vertical: 2.0,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.saleOrange,
@@ -142,7 +143,7 @@ class ProductCard extends StatelessWidget {
                             '-${product.discountPercentage!.round()}%',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 11.0,
+                              fontSize: 10.0,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.2,
                             ),
@@ -153,8 +154,8 @@ class ProductCard extends StatelessWidget {
                     // Stock Pill for Low / Out of Stock
                     if (!product.isInStock || product.isLowStock)
                       Positioned(
-                        bottom: AppSpacing.sm,
-                        right: AppSpacing.sm,
+                        bottom: AppSpacing.xs + 2,
+                        right: AppSpacing.xs + 2,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
@@ -185,7 +186,10 @@ class ProductCard extends StatelessWidget {
 
                 // Product Details
                 Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm + 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs + 2,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -212,17 +216,17 @@ class ProductCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          height: 1.25,
+                          height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 6.0),
+                      const SizedBox(height: 4.0),
 
                       // Rating Row
                       Row(
                         children: [
                           const Icon(
                             Icons.star_rounded,
-                            size: 16.0,
+                            size: 15.0,
                             color: Color(0xFFE6A23C),
                           ),
                           const SizedBox(width: 3.0),
@@ -251,7 +255,7 @@ class ProductCard extends StatelessWidget {
                           ],
                         ],
                       ),
-                      const SizedBox(height: 6.0),
+                      const SizedBox(height: 4.0),
 
                       // Price Row
                       Wrap(
