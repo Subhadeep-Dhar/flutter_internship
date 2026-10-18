@@ -17,6 +17,7 @@ import '../widgets/product_error_banner.dart';
 import '../widgets/product_grid_skeleton.dart';
 import '../widgets/product_search_bar.dart';
 import '../widgets/product_sort_bottom_sheet.dart';
+import '../../../cart/presentation/widgets/cart_badge_icon_button.dart';
 
 /// Full-featured, responsive ShopSphere product catalogue screen.
 class HomePage extends ConsumerStatefulWidget {
@@ -103,6 +104,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         actions: [
+          // Shopping Cart Button with Real-time Count Badge
+          const CartBadgeIconButton(),
+
           // Profile Button with User Avatar
           IconButton(
             tooltip: 'Profile',

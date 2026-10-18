@@ -6,6 +6,9 @@ import 'package:shopsphere/core/theme/app_theme.dart';
 import 'package:shopsphere/core/widgets/app_empty_view.dart';
 import 'package:shopsphere/core/widgets/app_error_view.dart';
 import 'package:shopsphere/core/widgets/app_loading_indicator.dart';
+import 'package:shopsphere/features/cart/presentation/controllers/cart_notifier.dart';
+import 'package:shopsphere/features/cart/presentation/controllers/cart_state.dart';
+import 'package:shopsphere/features/cart/presentation/widgets/add_to_cart_section.dart';
 import 'package:shopsphere/features/products/domain/entities/product.dart';
 import 'package:shopsphere/features/products/domain/entities/product_dimensions.dart';
 import 'package:shopsphere/features/products/domain/entities/product_meta.dart';
@@ -27,6 +30,24 @@ class FakeProductDetailNotifier extends ProductDetailNotifier {
   @override
   Future<void> retry() async {
     retryCalled = true;
+  }
+}
+
+class FakeCartNotifier extends CartNotifier {
+  Product? addedProduct;
+  int? addedQuantity;
+
+  @override
+  CartState build() => const CartState(status: CartStatus.ready);
+
+  @override
+  Future<void> loadCart() async {}
+
+  @override
+  Future<bool> addItem(Product product, {int quantity = 1}) async {
+    addedProduct = product;
+    addedQuantity = quantity;
+    return true;
   }
 }
 
@@ -71,13 +92,17 @@ void main() {
     required int productId,
     required ProductDetailState detailState,
     FakeProductDetailNotifier? fakeNotifier,
+    FakeCartNotifier? fakeCartNotifier,
   }) {
     final notifier =
         fakeNotifier ?? FakeProductDetailNotifier(productId, detailState);
+    final cartNotifier = fakeCartNotifier ?? FakeCartNotifier();
 
     return ProviderScope(
       overrides: [
         productDetailNotifierProvider(productId).overrideWith(() => notifier),
+        cartNotifierProvider.overrideWith(() => cartNotifier),
+        cartItemCountProvider.overrideWithValue(0),
       ],
       child: MaterialApp(
         theme: AppTheme.lightTheme,
@@ -282,6 +307,133 @@ void main() {
       await tester.pump();
 
       expect(find.byTooltip('Back'), findsOneWidget);
+    });
+
+    testWidgets(
+      'renders AddToCartSection with quantity stepper and price calculation',
+      (tester) async {
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.byType(AddToCartSection), findsOneWidget);
+        expect(find.text('Quantity'), findsOneWidget);
+        expect(find.text('1'), findsOneWidget);
+        // tFullProduct price = $150.00 with 10% discount -> $135.00
+        expect(find.text('Add to Cart  •  \$135.00'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'stepper increment and decrement updates selected quantity and total',
+      (tester) async {
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Tap + button
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+
+        expect(find.text('2'), findsOneWidget);
+        expect(find.text('Add to Cart  •  \$270.00'), findsOneWidget);
+
+        // Tap - button
+        await tester.tap(find.byIcon(Icons.remove_rounded));
+        await tester.pump();
+
+        expect(find.text('1'), findsOneWidget);
+        expect(find.text('Add to Cart  •  \$135.00'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tapping Add to Cart triggers addItem on CartNotifier and shows snackbar',
+      (tester) async {
+        final fakeCartNotifier = FakeCartNotifier();
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+            fakeCartNotifier: fakeCartNotifier,
+          ),
+        );
+        await tester.pump();
+
+        // Tap + to select quantity 2
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+
+        // Tap Add to Cart button
+        await tester.tap(find.byType(ElevatedButton));
+        await tester.pump();
+
+        expect(fakeCartNotifier.addedProduct?.id, 10);
+        expect(fakeCartNotifier.addedQuantity, 2);
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(
+          find.text('Added 2 × "${tFullProduct.title}" to cart'),
+          findsOneWidget,
+        );
+        expect(find.text('VIEW CART'), findsOneWidget);
+      },
+    );
+
+    testWidgets('disables Add to Cart button when product is out of stock', (
+      tester,
+    ) async {
+      const outOfStockProduct = Product(
+        id: 10,
+        title: 'Gucci Bloom Eau de Parfum',
+        description: 'Capturing the spirit of contemporary and diverse women.',
+        category: 'fragrances',
+        price: 150.0,
+        rating: 4.85,
+        stock: 0,
+        thumbnail: 'https://thumb.jpg',
+      );
+
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          productId: 10,
+          detailState: ProductDetailState(
+            status: ProductDetailStatus.loaded,
+            product: outOfStockProduct,
+            productId: 10,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.widgetWithText(ElevatedButton, 'Out of Stock'),
+        findsOneWidget,
+      );
+      final elevatedButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+      expect(elevatedButton.onPressed, isNull);
     });
   });
 }

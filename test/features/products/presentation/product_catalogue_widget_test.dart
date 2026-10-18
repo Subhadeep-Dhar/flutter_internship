@@ -7,6 +7,8 @@ import 'package:shopsphere/core/theme/app_theme.dart';
 import 'package:shopsphere/features/auth/domain/entities/user.dart';
 import 'package:shopsphere/features/auth/presentation/controllers/auth_notifier.dart';
 import 'package:shopsphere/features/auth/presentation/controllers/auth_state.dart';
+import 'package:shopsphere/features/cart/presentation/controllers/cart_notifier.dart';
+import 'package:shopsphere/features/cart/presentation/controllers/cart_state.dart';
 import 'package:shopsphere/features/products/domain/entities/category.dart';
 import 'package:shopsphere/features/products/domain/entities/product.dart';
 import 'package:shopsphere/features/products/presentation/controllers/product_list_notifier.dart';
@@ -75,6 +77,14 @@ class FakeProductListNotifier extends ProductListNotifier {
   }
 }
 
+class FakeCartNotifier extends CartNotifier {
+  @override
+  CartState build() => const CartState(status: CartStatus.ready);
+
+  @override
+  Future<void> loadCart() async {}
+}
+
 void main() {
   const tProduct = Product(
     id: 101,
@@ -104,6 +114,8 @@ void main() {
       overrides: [
         authNotifierProvider.overrideWith(FakeAuthNotifier.new),
         productListNotifierProvider.overrideWith(() => notifier),
+        cartNotifierProvider.overrideWith(FakeCartNotifier.new),
+        cartItemCountProvider.overrideWithValue(0),
       ],
       child: MaterialApp(theme: AppTheme.lightTheme, home: const HomePage()),
     );
@@ -434,6 +446,8 @@ void main() {
             productListNotifierProvider.overrideWith(
               () => FakeProductListNotifier(loadedState),
             ),
+            cartNotifierProvider.overrideWith(FakeCartNotifier.new),
+            cartItemCountProvider.overrideWithValue(0),
           ],
           child: MaterialApp.router(
             theme: AppTheme.lightTheme,

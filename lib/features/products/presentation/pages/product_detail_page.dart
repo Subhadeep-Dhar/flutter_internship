@@ -14,6 +14,8 @@ import '../widgets/product_image_gallery.dart';
 import '../widgets/product_info_section.dart';
 import '../widgets/product_reviews_list.dart';
 import '../widgets/product_specifications_card.dart';
+import '../../../cart/presentation/widgets/add_to_cart_section.dart';
+import '../../../cart/presentation/widgets/cart_badge_icon_button.dart';
 
 /// Full-featured, responsive product detail screen displaying high-resolution
 /// images, summary, specs, warranty, policies, and customer reviews.
@@ -45,6 +47,7 @@ class ProductDetailPage extends ConsumerWidget {
             }
           },
         ),
+        actions: const [CartBadgeIconButton()],
       ),
       body: SafeArea(
         child: switch (state.status) {
@@ -126,6 +129,8 @@ class ProductDetailPage extends ConsumerWidget {
           ),
           AppSpacing.gapXl,
           ProductInfoSection(product: product),
+          AppSpacing.gapLg,
+          AddToCartSection(product: product),
           AppSpacing.gapXl,
           ProductSpecificationsCard(product: product),
           AppSpacing.gapXl,
@@ -164,6 +169,8 @@ class ProductDetailPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ProductInfoSection(product: product),
+                  AppSpacing.gapLg,
+                  AddToCartSection(product: product),
                   AppSpacing.gapXl,
                   ProductSpecificationsCard(product: product),
                   AppSpacing.gapXl,
