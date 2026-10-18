@@ -13,6 +13,16 @@ import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/restore_session_usecase.dart';
 import '../../features/auth/presentation/controllers/auth_notifier.dart';
 import '../../features/auth/presentation/controllers/auth_state.dart';
+import '../../features/products/data/datasources/product_remote_data_source.dart';
+import '../../features/products/data/repositories/product_repository_impl.dart';
+import '../../features/products/domain/repositories/product_repository.dart';
+import '../../features/products/domain/usecases/get_categories_usecase.dart';
+import '../../features/products/domain/usecases/get_product_by_id_usecase.dart';
+import '../../features/products/domain/usecases/get_products_by_category_usecase.dart';
+import '../../features/products/domain/usecases/get_products_usecase.dart';
+import '../../features/products/domain/usecases/search_products_usecase.dart';
+import '../../features/products/presentation/controllers/product_list_notifier.dart';
+import '../../features/products/presentation/controllers/product_list_state.dart';
 import '../network/api_endpoints.dart';
 import '../network/auth_interceptor.dart';
 import '../network/dio_client.dart';
@@ -175,3 +185,49 @@ final dioProvider = Provider<Dio>((ref) {
 final authNotifierProvider = NotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
 );
+
+/// Provider for [ProductRemoteDataSource].
+final productRemoteDataSourceProvider = Provider<ProductRemoteDataSource>((
+  ref,
+) {
+  final dio = ref.watch(dioProvider);
+  return ProductRemoteDataSourceImpl(dio);
+});
+
+/// Provider for [ProductRepository].
+final productRepositoryProvider = Provider<ProductRepository>((ref) {
+  final remote = ref.watch(productRemoteDataSourceProvider);
+  return ProductRepositoryImpl(remoteDataSource: remote);
+});
+
+/// Provider for [GetProductsUseCase].
+final getProductsUseCaseProvider = Provider<GetProductsUseCase>((ref) {
+  return GetProductsUseCase(ref.watch(productRepositoryProvider));
+});
+
+/// Provider for [GetCategoriesUseCase].
+final getCategoriesUseCaseProvider = Provider<GetCategoriesUseCase>((ref) {
+  return GetCategoriesUseCase(ref.watch(productRepositoryProvider));
+});
+
+/// Provider for [SearchProductsUseCase].
+final searchProductsUseCaseProvider = Provider<SearchProductsUseCase>((ref) {
+  return SearchProductsUseCase(ref.watch(productRepositoryProvider));
+});
+
+/// Provider for [GetProductsByCategoryUseCase].
+final getProductsByCategoryUseCaseProvider =
+    Provider<GetProductsByCategoryUseCase>((ref) {
+      return GetProductsByCategoryUseCase(ref.watch(productRepositoryProvider));
+    });
+
+/// Provider for [GetProductByIdUseCase].
+final getProductByIdUseCaseProvider = Provider<GetProductByIdUseCase>((ref) {
+  return GetProductByIdUseCase(ref.watch(productRepositoryProvider));
+});
+
+/// Central [NotifierProvider] managing catalogue product list state.
+final productListNotifierProvider =
+    NotifierProvider<ProductListNotifier, ProductListState>(
+      ProductListNotifier.new,
+    );
