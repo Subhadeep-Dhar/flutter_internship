@@ -128,7 +128,58 @@ ShopSphere implements an end-to-end, testable, and secure authentication flow:
 
 ---
 
-## 7. Getting Started
+## 7. Product Catalogue Architecture (Phase 3)
+
+ShopSphere implements a performant, responsive product catalogue with client-side debouncing, server-side and client-side sorting, category filtering, and safe infinite scroll pagination:
+
+### 1. Domain Layer (`lib/features/products/domain/`)
+* **Entities**:
+  * `Product`: Strongly typed, null-safe domain entity (`id`, `title`, `description`, `category`, `price`, `discountPercentage`, `rating`, `stock`, `tags`, `brand`, `thumbnail`, `images`, `availabilityStatus`) with computed getters for `effectivePrice`, `stockStatusLabel`, `isInStock`, and `isLowStock`.
+  * `Category`: Category entity (`slug`, `name`, `url`) with a static synthetic `Category.all` chip.
+  * `PaginatedProducts`: Container holding a slice of products, `total`, `skip`, `limit`, and `hasMore` boundary helper.
+  * `ProductSortOption`: Enum for sorting criteria: `none` (Featured), `priceAsc` (Price: Low to High), `priceDesc` (Price: High to Low), and `ratingDesc` (Highest Rated).
+* **Repository Interface**: `ProductRepository` pure Dart contract.
+* **Use Cases**:
+  * `GetProductsUseCase`: Paginated list of products with optional sorting.
+  * `GetCategoriesUseCase`: Available catalogue categories.
+  * `SearchProductsUseCase`: Debounced query search with pagination and sorting.
+  * `GetProductsByCategoryUseCase`: Filtered products by category slug with pagination and sorting.
+  * `GetProductByIdUseCase`: Single product detail lookup.
+
+### 2. Data Layer (`lib/features/products/data/`)
+* **Remote Data Source**: `ProductRemoteDataSource` consuming:
+  * `GET /products?limit=20&skip=0&sortBy={sortBy}&order={order}`
+  * `GET /products/search?q={query}&limit=20&skip=0&sortBy={sortBy}&order={order}`
+  * `GET /products/category/{category}?limit=20&skip=0&sortBy={sortBy}&order={order}`
+  * `GET /products/categories` (parsing both object and raw string list payloads defensively)
+  * `GET /products/{id}`
+* **Models**: `ProductModel`, `CategoryModel`, and `ProductPageResponseModel` with defensive null-safety and fallback handling.
+* **Repository Implementation**: `ProductRepositoryImpl` translating network/dio exceptions through `ErrorHandler` to typed `Failure` results.
+
+### 3. State Management & Concurrency Protection
+* **Riverpod 3 Controller**: `ProductListNotifier` manages `ProductListState`:
+  * **Debounced Search**: Integrates `Debouncer(delay: 400ms)` so user typing never fires duplicate or excessive API requests.
+  * **Stale-Query Protection**: Monotonic sequence token (`_activeRequestId`) invalidates responses from slower out-of-order search requests.
+  * **Safe Infinite Pagination**: Concurrency lock prevents duplicate pagination requests while `isLoadingMore` is active or when reaching the end of the catalogue (`hasMore == false`).
+  * **Non-Destructive Pagination Errors**: Network failures during pagination preserve all already loaded products and display a retryable footer banner rather than wiping the screen.
+  * **Filter Reset**: Selecting a new category or submitting a new search resets pagination offset (`skip = 0`) cleanly.
+
+### 4. Presentation & Responsive UI
+* **Responsive Layout**: Computes grid columns dynamically using `Breakpoints.gridColumnCount(width)` (2 columns on mobile, 3–4 columns on tablets/landscape, 5 on wide screens).
+* **Shimmer Skeleton**: `ProductGridSkeleton` displays an animated pulsing placeholder matching card geometry during initial data loads.
+* **Product Card**:
+  * Product thumbnail with `CachedNetworkImage` and placeholder/fallback widgets.
+  * Bold orange discount percentage badge (e.g. `-20%`).
+  * Stock status tag (In stock, Only N left, or Out of stock).
+  * 2-line title with ellipsis, category badge, star rating, effective price, and struck-through original price.
+* **Category Chips**: Horizontal scrollable list with an "All" chip and animated selection states.
+* **Search & Sort Bar**: Search input with clear button, keyboard submission, and a sort bottom sheet (`ProductSortBottomSheet`).
+* **Empty & Error States**: Contextual `AppEmptyView` with reset button and `AppErrorView` with retry action.
+* **Accessibility**: Minimum **48dp** interactive touch targets enforced across all chips, buttons, and inputs.
+
+---
+
+## 8. Getting Started
 
 ### Prerequisites
 * Flutter SDK: `3.44.1` (channel `stable`)
@@ -161,19 +212,19 @@ flutter run
 
 ---
 
-## 8. Test Suite Status
+## 9. Test Suite Status
 
-Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier state transitions, interceptor refresh concurrency, and widget interactions:
+Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier, product list notifier, search debouncing, concurrency protection, and widget interactions:
 
 ```bash
 flutter test
 ```
-* Status: **79 / 79 tests passing**
-* Static Analysis: **0 issues found** across all 55 files.
+* Status: **130 / 130 tests passing**
+* Static Analysis: **0 issues found** across all 85 files.
 
 ---
 
-## 9. Verified Test Credentials (DummyJSON)
+## 10. Verified Test Credentials (DummyJSON)
 
 The following credentials are provided by DummyJSON for manual testing:
 * **Username**: `emilys`
