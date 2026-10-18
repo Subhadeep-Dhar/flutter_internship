@@ -1,4 +1,7 @@
 import '../../domain/entities/product.dart';
+import 'product_dimensions_model.dart';
+import 'product_meta_model.dart';
+import 'review_model.dart';
 
 /// Concrete DTO model representing a [Product] serialized from the DummyJSON API.
 class ProductModel extends Product {
@@ -16,6 +19,15 @@ class ProductModel extends Product {
     required super.thumbnail,
     super.images,
     super.availabilityStatus,
+    super.sku,
+    super.weight,
+    super.dimensions,
+    super.warrantyInformation,
+    super.shippingInformation,
+    super.returnPolicy,
+    super.minimumOrderQuantity,
+    super.meta,
+    super.reviews,
   });
 
   /// Factory constructor to deserialize a JSON object defensively.
@@ -44,6 +56,36 @@ class ProductModel extends Product {
       resolvedThumbnail = parsedImages.first;
     }
 
+    // Handle dimensions safely
+    final dimRaw = json['dimensions'];
+    final ProductDimensionsModel? parsedDimensions;
+    if (dimRaw is Map<String, dynamic>) {
+      parsedDimensions = ProductDimensionsModel.fromJson(dimRaw);
+    } else {
+      parsedDimensions = null;
+    }
+
+    // Handle metadata safely
+    final metaRaw = json['meta'];
+    final ProductMetaModel? parsedMeta;
+    if (metaRaw is Map<String, dynamic>) {
+      parsedMeta = ProductMetaModel.fromJson(metaRaw);
+    } else {
+      parsedMeta = null;
+    }
+
+    // Handle reviews safely
+    final reviewsRaw = json['reviews'];
+    final List<ReviewModel> parsedReviews;
+    if (reviewsRaw is List) {
+      parsedReviews = reviewsRaw
+          .whereType<Map<String, dynamic>>()
+          .map(ReviewModel.fromJson)
+          .toList();
+    } else {
+      parsedReviews = const [];
+    }
+
     return ProductModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       title: (json['title'] as String?)?.trim() ?? 'Untitled Product',
@@ -58,6 +100,15 @@ class ProductModel extends Product {
       thumbnail: resolvedThumbnail,
       images: parsedImages,
       availabilityStatus: (json['availabilityStatus'] as String?)?.trim(),
+      sku: (json['sku'] as String?)?.trim(),
+      weight: (json['weight'] as num?)?.toDouble(),
+      dimensions: parsedDimensions,
+      warrantyInformation: (json['warrantyInformation'] as String?)?.trim(),
+      shippingInformation: (json['shippingInformation'] as String?)?.trim(),
+      returnPolicy: (json['returnPolicy'] as String?)?.trim(),
+      minimumOrderQuantity: (json['minimumOrderQuantity'] as num?)?.toInt(),
+      meta: parsedMeta,
+      reviews: parsedReviews,
     );
   }
 
@@ -77,6 +128,32 @@ class ProductModel extends Product {
       'thumbnail': thumbnail,
       'images': images,
       if (availabilityStatus != null) 'availabilityStatus': availabilityStatus,
+      if (sku != null) 'sku': sku,
+      if (weight != null) 'weight': weight,
+      if (dimensions != null && dimensions is ProductDimensionsModel)
+        'dimensions': (dimensions as ProductDimensionsModel).toJson(),
+      if (warrantyInformation != null)
+        'warrantyInformation': warrantyInformation,
+      if (shippingInformation != null)
+        'shippingInformation': shippingInformation,
+      if (returnPolicy != null) 'returnPolicy': returnPolicy,
+      if (minimumOrderQuantity != null)
+        'minimumOrderQuantity': minimumOrderQuantity,
+      if (meta != null && meta is ProductMetaModel)
+        'meta': (meta as ProductMetaModel).toJson(),
+      'reviews': reviews
+          .map(
+            (r) => r is ReviewModel
+                ? r.toJson()
+                : ReviewModel(
+                    rating: r.rating,
+                    comment: r.comment,
+                    date: r.date,
+                    reviewerName: r.reviewerName,
+                    reviewerEmail: r.reviewerEmail,
+                  ).toJson(),
+          )
+          .toList(),
     };
   }
 }

@@ -318,13 +318,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 return ProductCard(
                   product: product,
                   onTap: () {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${product.title} selected'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    context.push('/product/${product.id}');
                   },
                 );
               }, childCount: state.products.length),

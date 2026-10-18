@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shopsphere/core/di/providers.dart';
 import 'package:shopsphere/core/theme/app_theme.dart';
 import 'package:shopsphere/features/auth/domain/entities/user.dart';
@@ -401,5 +402,53 @@ void main() {
         expect(fakeNotifier.retryCalled, isTrue);
       },
     );
+
+    testWidgets('tapping ProductCard navigates to /product/:id route', (
+      tester,
+    ) async {
+      final loadedState = ProductListState(
+        status: ProductListStatus.loaded,
+        products: [tProduct],
+        categories: tCategories,
+        total: 1,
+      );
+
+      final router = GoRouter(
+        initialLocation: '/home',
+        routes: [
+          GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+          GoRoute(
+            path: '/product/:id',
+            builder: (context, state) {
+              final id = state.pathParameters['id'];
+              return Scaffold(body: Text('Product Detail Screen #$id'));
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authNotifierProvider.overrideWith(FakeAuthNotifier.new),
+            productListNotifierProvider.overrideWith(
+              () => FakeProductListNotifier(loadedState),
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.lightTheme,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Wireless Earbuds'), findsOneWidget);
+
+      await tester.tap(find.text('Wireless Earbuds'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Product Detail Screen #101'), findsOneWidget);
+    });
   });
 }

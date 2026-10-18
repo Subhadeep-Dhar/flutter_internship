@@ -7,6 +7,7 @@ import '../features/auth/presentation/controllers/auth_state.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
 import '../features/products/presentation/pages/home_page.dart';
+import '../features/products/presentation/pages/product_detail_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 
 /// Centralized route paths for ShopSphere.
@@ -19,6 +20,9 @@ class AppRoutes {
   static const String productDetails = '/product/:id';
   static const String cart = '/cart';
   static const String profile = '/profile';
+
+  /// Helper to generate the path for a specific product by ID.
+  static String productDetail(int id) => '/product/$id';
 }
 
 /// A [ChangeNotifier] bridge that triggers GoRouter redirect re-evaluations
@@ -64,13 +68,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.productDetails,
         name: 'productDetails',
         builder: (context, state) {
-          final id = state.pathParameters['id'] ?? '';
-          return Scaffold(
-            appBar: AppBar(title: Text('Product #$id')),
-            body: Center(
-              child: Text('Product details for #$id coming in Phase 4'),
-            ),
-          );
+          final idStr = state.pathParameters['id'] ?? '';
+          final id = int.tryParse(idStr) ?? 0;
+          return ProductDetailPage(productId: id);
         },
       ),
     ],

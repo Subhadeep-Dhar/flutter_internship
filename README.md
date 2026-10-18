@@ -179,7 +179,65 @@ ShopSphere implements a performant, responsive product catalogue with client-sid
 
 ---
 
-## 8. Getting Started
+## 8. Product Details Architecture (Phase 4)
+
+ShopSphere implements a complete, responsive product details experience consuming DummyJSON's single product endpoint (`GET /products/{id}`) and displaying rich product metadata, an interactive image gallery, specifications, and customer reviews:
+
+### 1. Domain Layer (`lib/features/products/domain/`)
+* **Entities**:
+  * `Product`: Extended to support full detail fields defensively: `sku`, `weight`, `dimensions` (`ProductDimensions`), `warrantyInformation`, `shippingInformation`, `returnPolicy`, `minimumOrderQuantity`, `meta` (`ProductMeta`), and `reviews` (`List<Review>`).
+  * `Review`: Pure Dart entity encapsulating `rating`, `comment`, `reviewerName`, `reviewerEmail`, and `date` with defensive ISO 8601 date parsing (`parsedDate`) and formatted display strings (`formattedDate`).
+  * `ProductDimensions`: Pure Dart entity for `width`, `height`, and `depth` with computed `formatted` string (e.g. `10.0 × 15.0 × 5.0 cm`).
+  * `ProductMeta`: Pure Dart entity for barcode, QR code, and creation/update timestamps.
+* **Use Cases**:
+  * `GetProductByIdUseCase`: Retrieves single product details via `ProductRepository.getProductById(id)` with typed `Result<Product>` error handling.
+
+### 2. Data Layer (`lib/features/products/data/`)
+* **Models**:
+  * `ProductModel`: Defensive parsing of optional fields; missing or malformed fields safely fallback without throwing runtime exceptions.
+  * `ReviewModel`, `ProductDimensionsModel`, `ProductMetaModel`: Serialization and deserialization with null safety and trimming.
+* **Remote Data Source**:
+  * `ProductRemoteDataSource.getProductById(id)` consumes `GET /products/{id}` using the centralized Dio client.
+* **Repository Implementation**:
+  * `ProductRepositoryImpl.getProductById(id)` validates product ID (`id > 0`) and maps Dio/network exceptions through `ErrorHandler` to typed `Failure` results.
+
+### 3. State Management & Lifecycle
+* **Riverpod 3 Controller**:
+  * `ProductDetailNotifier`: Managed via `NotifierProvider.autoDispose.family<ProductDetailNotifier, ProductDetailState, int>`.
+  * **State**: `ProductDetailState` encapsulating explicit statuses: `initial`, `loading`, `loaded`, `error`, and `invalidId`.
+  * **Stale Response Protection**: Request sequence counter (`_activeRequestId`) prevents out-of-order asynchronous responses from overwriting newer routes or state.
+  * **Disposal & Lifecycle**: `ref.mounted` guards ensure that state updates never run against disposed providers.
+  * **Retry Recovery**: `retry()` method allows instantaneous reload on network errors.
+
+### 4. Responsive UI & Visual Presentation
+* **Navigation & Routing**:
+  * `GoRouter` route `/product/:id` protected by top-level authentication guard.
+  * Product card tapping in `HomePage` pushes `/product/${product.id}`.
+  * Standard Material 3 AppBar with accessible Back navigation action (`context.pop()` or fallback `/home`).
+  * Invalid product IDs (non-numeric, `<= 0`) display a dedicated `AppEmptyView` with return-to-catalogue action.
+* **Responsive Layout**:
+  * **Compact / Mobile** (`< 600 dp`): Vertical flow with sticky AppBar, swipeable image gallery, summary details, specifications card, and reviews list.
+  * **Medium / Tablet / Desktop** (`>= 600 dp`): Intelligent two-column layout with fixed-ratio image gallery on the left and scrollable product details, specifications, and reviews on the right.
+* **Interactive Image Gallery (`ProductImageGallery`)**:
+  * Swipeable `PageView` with smooth animated indicator dots.
+  * Thumbnail carousel for rapid image switching.
+  * High-resolution image caching with `CachedNetworkImage` and polished fallback on network/asset failure.
+  * Accessible semantic labels indicating current image index (`image X of Y`).
+* **Product Summary (`ProductInfoSection`)**:
+  * Category badge, brand name, and full product title.
+  * Star rating with total review count.
+  * Accurate price formatting showing discounted price, struck-through original price, and bold discount pill (`-X%`).
+  * Dynamic stock badge ("In Stock", "Only N left", "Out of Stock") using verified API values without fabrication.
+* **Specifications Card (`ProductSpecificationsCard`)**:
+  * Renders SKU, dimensions, weight, warranty, shipping terms, return policy, minimum order quantity, and barcode.
+  * Defensive omission: empty or missing fields are completely omitted rather than displaying blank labels.
+* **Customer Reviews (`ProductReviewsList`)**:
+  * Renders authentic customer ratings, reviewer names, review dates, and comments.
+  * Gracefully handles empty reviews with an informative notice.
+
+---
+
+## 9. Getting Started
 
 ### Prerequisites
 * Flutter SDK: `3.44.1` (channel `stable`)
@@ -212,22 +270,23 @@ flutter run
 
 ---
 
-## 9. Test Suite Status
+## 10. Test Suite Status
 
-Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier, product list notifier, search debouncing, concurrency protection, and widget interactions:
+Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier, product list notifier, product detail notifier, image gallery, reviews, responsive detail layouts, search debouncing, concurrency protection, and widget interactions:
 
 ```bash
 flutter test
 ```
-* Status: **130 / 130 tests passing**
-* Static Analysis: **0 issues found** across all 85 files.
+* Status: **155 / 155 tests passing**
+* Static Analysis: **0 issues found** across all files.
 
 ---
 
-## 10. Verified Test Credentials (DummyJSON)
+## 11. Verified Test Credentials (DummyJSON)
 
 The following credentials are provided by DummyJSON for manual testing:
 * **Username**: `emilys`
 * **Password**: `emilyspass`
 
 *(Note: These credentials are strictly for manual verification and are never hard-coded into application logic).*
+

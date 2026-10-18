@@ -1,3 +1,7 @@
+import 'product_dimensions.dart';
+import 'product_meta.dart';
+import 'review.dart';
+
 /// Pure Dart domain entity representing a Product in the catalogue.
 class Product {
   final int id;
@@ -13,6 +17,15 @@ class Product {
   final String thumbnail;
   final List<String> images;
   final String? availabilityStatus;
+  final String? sku;
+  final double? weight;
+  final ProductDimensions? dimensions;
+  final String? warrantyInformation;
+  final String? shippingInformation;
+  final String? returnPolicy;
+  final int? minimumOrderQuantity;
+  final ProductMeta? meta;
+  final List<Review> reviews;
 
   const Product({
     required this.id,
@@ -28,6 +41,15 @@ class Product {
     required this.thumbnail,
     this.images = const [],
     this.availabilityStatus,
+    this.sku,
+    this.weight,
+    this.dimensions,
+    this.warrantyInformation,
+    this.shippingInformation,
+    this.returnPolicy,
+    this.minimumOrderQuantity,
+    this.meta,
+    this.reviews = const [],
   });
 
   /// True if the product has available inventory.
@@ -36,9 +58,12 @@ class Product {
   /// True if inventory is critically low (5 or fewer units).
   bool get isLowStock => stock > 0 && stock <= 5;
 
+  /// True if discount is present and greater than 0.
+  bool get hasDiscount => discountPercentage != null && discountPercentage! > 0;
+
   /// Effective price after applying discount, or original price if no discount.
   double get effectivePrice {
-    if (discountPercentage != null && discountPercentage! > 0) {
+    if (hasDiscount) {
       return price * (1 - (discountPercentage! / 100));
     }
     return price;
@@ -53,6 +78,12 @@ class Product {
     if (stock <= 5) return 'Only $stock left';
     return 'In Stock';
   }
+
+  /// Number of customer reviews attached to this product.
+  int get reviewCount => reviews.length;
+
+  /// Whether this product has any reviews.
+  bool get hasReviews => reviews.isNotEmpty;
 
   @override
   bool operator ==(Object other) =>

@@ -21,6 +21,8 @@ import '../../features/products/domain/usecases/get_product_by_id_usecase.dart';
 import '../../features/products/domain/usecases/get_products_by_category_usecase.dart';
 import '../../features/products/domain/usecases/get_products_usecase.dart';
 import '../../features/products/domain/usecases/search_products_usecase.dart';
+import '../../features/products/presentation/controllers/product_detail_notifier.dart';
+import '../../features/products/presentation/controllers/product_detail_state.dart';
 import '../../features/products/presentation/controllers/product_list_notifier.dart';
 import '../../features/products/presentation/controllers/product_list_state.dart';
 import '../network/api_endpoints.dart';
@@ -230,4 +232,10 @@ final getProductByIdUseCaseProvider = Provider<GetProductByIdUseCase>((ref) {
 final productListNotifierProvider =
     NotifierProvider<ProductListNotifier, ProductListState>(
       ProductListNotifier.new,
+    );
+
+/// Family [NotifierProvider] managing individual product details state.
+final productDetailNotifierProvider = NotifierProvider.autoDispose
+    .family<ProductDetailNotifier, ProductDetailState, int>(
+      ProductDetailNotifier.new,
     );
