@@ -60,6 +60,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'profile',
         builder: (context, state) => const ProfilePage(),
       ),
+      GoRoute(
+        path: AppRoutes.productDetails,
+        name: 'productDetails',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return Scaffold(
+            appBar: AppBar(title: Text('Product #$id')),
+            body: Center(
+              child: Text('Product details for #$id coming in Phase 4'),
+            ),
+          );
+        },
+      ),
     ],
     redirect: (BuildContext context, GoRouterState state) {
       final authState = ref.read(authNotifierProvider);
