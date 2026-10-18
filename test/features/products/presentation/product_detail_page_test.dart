@@ -6,6 +6,8 @@ import 'package:shopsphere/core/theme/app_theme.dart';
 import 'package:shopsphere/core/widgets/app_empty_view.dart';
 import 'package:shopsphere/core/widgets/app_error_view.dart';
 import 'package:shopsphere/core/widgets/app_loading_indicator.dart';
+import 'package:shopsphere/features/cart/domain/entities/cart.dart';
+import 'package:shopsphere/features/cart/domain/entities/cart_item.dart';
 import 'package:shopsphere/features/cart/presentation/controllers/cart_notifier.dart';
 import 'package:shopsphere/features/cart/presentation/controllers/cart_state.dart';
 import 'package:shopsphere/features/cart/presentation/widgets/add_to_cart_section.dart';
@@ -34,11 +36,19 @@ class FakeProductDetailNotifier extends ProductDetailNotifier {
 }
 
 class FakeCartNotifier extends CartNotifier {
+  final CartState? _initialState;
   Product? addedProduct;
   int? addedQuantity;
 
+  FakeCartNotifier([this._initialState]);
+
   @override
-  CartState build() => const CartState(status: CartStatus.ready);
+  CartState build() =>
+      _initialState ?? const CartState(status: CartStatus.ready);
+
+  void setCart(Cart cart) {
+    state = state.copyWith(cart: cart);
+  }
 
   @override
   Future<void> loadCart() async {}
@@ -435,5 +445,339 @@ void main() {
       );
       expect(elevatedButton.onPressed, isNull);
     });
+
+    testWidgets(
+      'displays inline message and disables button labelled "Cart Full" when cart is at capacity',
+      (tester) async {
+        final fullCart = Cart(
+          items: [
+            const CartItem(
+              productId: 999,
+              title: 'Bulk Cart Items',
+              price: 10.0,
+              thumbnail: '',
+              stock: 100,
+              quantity: 99,
+            ),
+          ],
+        );
+        final fakeCartNotifier = FakeCartNotifier(
+          CartState(status: CartStatus.ready, cart: fullCart),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+            fakeCartNotifier: fakeCartNotifier,
+          ),
+        );
+        await tester.pump();
+
+        // 1. Visible inline message near controls without opening cart
+        expect(
+          find.byKey(const Key('cart_full_inline_message')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(
+            'Your cart is full. Remove an item or reduce quantities to add more.',
+          ),
+          findsOneWidget,
+        );
+        // SnackBar must not be shown
+        expect(find.byType(SnackBar), findsNothing);
+
+        // 2. Add to Cart button is disabled and labelled "Cart Full"
+        expect(
+          find.widgetWithText(ElevatedButton, 'Cart Full'),
+          findsOneWidget,
+        );
+        final btn = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+        expect(btn.onPressed, isNull);
+
+        // Max additional is 0
+        expect(find.text('Max additional: 0'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      're-enables Add to Cart button reactively when cart capacity is freed without reloading page',
+      (tester) async {
+        final fullCart = Cart(
+          items: [
+            const CartItem(
+              productId: 999,
+              title: 'Bulk Cart Items',
+              price: 10.0,
+              thumbnail: '',
+              stock: 100,
+              quantity: 99,
+            ),
+          ],
+        );
+        final fakeCartNotifier = FakeCartNotifier(
+          CartState(status: CartStatus.ready, cart: fullCart),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+            fakeCartNotifier: fakeCartNotifier,
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Cart Full'), findsOneWidget);
+        expect(
+          find.byKey(const Key('cart_full_inline_message')),
+          findsOneWidget,
+        );
+
+        // User removes an item or reduces quantity in the background / cart page
+        fakeCartNotifier.setCart(const Cart(items: []));
+        await tester.pump();
+
+        // Reactively updates: banner disappears, button re-enabled with price
+        expect(find.byKey(const Key('cart_full_inline_message')), findsNothing);
+        expect(find.text('Cart Full'), findsNothing);
+        expect(find.text('Add to Cart  •  \$135.00'), findsOneWidget);
+
+        final updatedBtn = tester.widget<ElevatedButton>(
+          find.byType(ElevatedButton),
+        );
+        expect(updatedBtn.onPressed, isNotNull);
+      },
+    );
+
+    testWidgets(
+      'displays available stock, selected quantity, and max additional quantity correctly',
+      (tester) async {
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Available stock: 4 units'), findsOneWidget);
+        expect(find.text('Max additional: 4'), findsOneWidget);
+        expect(find.text('Selected: 1'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'product already in cart uses remaining stock and prevents incrementing beyond limit',
+      (tester) async {
+        // Product has stock 4, 2 already in cart
+        final existingItem = CartItem.fromProduct(tFullProduct, quantity: 2);
+        final cartWith2 = Cart(items: [existingItem]);
+        final fakeCartNotifier = FakeCartNotifier(
+          CartState(status: CartStatus.ready, cart: cartWith2),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+            fakeCartNotifier: fakeCartNotifier,
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Available stock: 4 units'), findsOneWidget);
+        expect(find.text('(2 in cart)'), findsOneWidget);
+        expect(find.text('Max additional: 2'), findsOneWidget);
+
+        // Tap increment once -> selected becomes 2
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+
+        expect(find.text('2'), findsOneWidget);
+        expect(find.text('Selected: 2'), findsOneWidget);
+        expect(find.text('Add to Cart  •  \$270.00'), findsOneWidget);
+
+        // Tap increment again -> cannot increment beyond remaining stock 2
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+
+        expect(find.text('2'), findsOneWidget);
+        expect(find.text('Selected: 2'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'maximum additional quantity respects cart-wide capacity when smaller than stock',
+      (tester) async {
+        const productWithLargeStock = Product(
+          id: 10,
+          title: 'Gucci Bloom Eau de Parfum',
+          description: 'Contemporary scent.',
+          category: 'fragrances',
+          price: 150.0,
+          rating: 4.85,
+          stock: 50,
+          thumbnail: 'https://thumb.jpg',
+        );
+
+        // Cart has 96 items across other products -> remaining cart capacity is 3
+        final otherItem = const CartItem(
+          productId: 888,
+          title: 'Existing Item',
+          price: 10.0,
+          thumbnail: '',
+          stock: 100,
+          quantity: 96,
+        );
+        final cartWith96 = Cart(items: [otherItem]);
+        final fakeCartNotifier = FakeCartNotifier(
+          CartState(status: CartStatus.ready, cart: cartWith96),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: productWithLargeStock,
+              productId: 10,
+            ),
+            fakeCartNotifier: fakeCartNotifier,
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Available stock: 50 units'), findsOneWidget);
+        // Max additional capped at 3 due to cart capacity
+        expect(find.text('Max additional: 3'), findsOneWidget);
+
+        // Increment to 3
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+
+        expect(find.text('3'), findsOneWidget);
+        expect(find.text('Selected: 3'), findsOneWidget);
+
+        // At upper limit, explanation for cart capacity is shown
+        expect(
+          find.textContaining('Cart capacity limit reached'),
+          findsOneWidget,
+        );
+
+        // Tapping increment again does not increase beyond 3
+        await tester.tap(find.byIcon(Icons.add_rounded));
+        await tester.pump();
+        expect(find.text('3'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'displays accurate "Stock Limit Reached" message when all product stock is in cart',
+      (tester) async {
+        // Product has stock 4, and user has all 4 in cart (cart total is 4, so not cart full)
+        final itemWithAllStock = CartItem.fromProduct(
+          tFullProduct,
+          quantity: 4,
+        );
+        final cartWithMaxProduct = Cart(items: [itemWithAllStock]);
+        final fakeCartNotifier = FakeCartNotifier(
+          CartState(status: CartStatus.ready, cart: cartWithMaxProduct),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tFullProduct,
+              productId: 10,
+            ),
+            fakeCartNotifier: fakeCartNotifier,
+          ),
+        );
+        await tester.pump();
+
+        // Must display "Stock Limit Reached", NOT "Cart Full"
+        expect(
+          find.widgetWithText(ElevatedButton, 'Stock Limit Reached'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(ElevatedButton, 'Cart Full'), findsNothing);
+
+        final btn = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+        expect(btn.onPressed, isNull);
+
+        expect(
+          find.byKey(const Key('stock_limit_inline_message')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('You already have all 4 available units in your cart.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'displays accurate out of stock inline message when product stock is 0 without labelling as Cart Full',
+      (tester) async {
+        const outOfStockProduct = Product(
+          id: 10,
+          title: 'Gucci Bloom Eau de Parfum',
+          description: 'Contemporary fragrance.',
+          category: 'fragrances',
+          price: 150.0,
+          rating: 4.85,
+          stock: 0,
+          thumbnail: 'https://thumb.jpg',
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 10,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: outOfStockProduct,
+              productId: 10,
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(
+          find.byKey(const Key('out_of_stock_inline_message')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('This product is currently out of stock.'),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(ElevatedButton, 'Out of Stock'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(ElevatedButton, 'Cart Full'), findsNothing);
+      },
+    );
   });
 }

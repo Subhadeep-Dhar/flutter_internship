@@ -115,6 +115,70 @@ void main() {
       },
     );
 
+    test(
+      'Cart accurately enforces maxCapacity, isFull, and remainingCapacity',
+      () {
+        expect(Cart.maxCapacity, 99);
+        const emptyCart = Cart();
+        expect(emptyCart.isFull, isFalse);
+        expect(emptyCart.remainingCapacity, 99);
+
+        final partialCart = Cart(
+          items: [CartItem.fromProduct(tProduct, quantity: 50)],
+        );
+        expect(partialCart.isFull, isFalse);
+        expect(partialCart.remainingCapacity, 49);
+
+        final fullCart = Cart(
+          items: [CartItem.fromProduct(tProduct, quantity: 99)],
+        );
+        expect(fullCart.isFull, isTrue);
+        expect(fullCart.remainingCapacity, 0);
+      },
+    );
+
+    test(
+      'Cart maxAddableForProduct respects stock, existing in-cart units, and capacity',
+      () {
+        // 1. Empty cart with product stock 10
+        const emptyCart = Cart();
+        expect(emptyCart.maxAddableForProduct(10, 1), 10);
+
+        // 2. Out of stock product
+        expect(emptyCart.maxAddableForProduct(0, 1), 0);
+
+        // 3. Product already has 3 units in cart (stock 10)
+        final cartWith3 = Cart(
+          items: [CartItem.fromProduct(tProduct, quantity: 3)],
+        );
+        expect(cartWith3.maxAddableForProduct(10, tProduct.id), 7);
+
+        // 4. Product has all stock in cart
+        final cartWithMax = Cart(
+          items: [CartItem.fromProduct(tProduct, quantity: 10)],
+        );
+        expect(cartWithMax.maxAddableForProduct(10, tProduct.id), 0);
+
+        // 5. Cart-wide capacity is the bottleneck (e.g. 95 other items, product stock 20)
+        final otherItem = CartItem(
+          productId: 999,
+          title: 'Other',
+          price: 10.0,
+          thumbnail: '',
+          stock: 100,
+          quantity: 95,
+        );
+        final nearlyFullCart = Cart(items: [otherItem]);
+        expect(nearlyFullCart.remainingCapacity, 4);
+        // Product stock is 20, but remaining capacity is only 4
+        expect(nearlyFullCart.maxAddableForProduct(20, 1), 4);
+
+        // 6. Full cart returns 0 addable
+        final fullCart = Cart(items: [otherItem.copyWith(quantity: 99)]);
+        expect(fullCart.maxAddableForProduct(20, 1), 0);
+      },
+    );
+
     test('CartModel serializes and deserializes empty and populated lists', () {
       final item = CartItemModel(
         productId: 5,

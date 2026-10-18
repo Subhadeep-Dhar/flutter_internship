@@ -131,6 +131,68 @@ void main() {
       expect(state.errorMessage, 'Maximum stock limit reached.');
     });
 
+    test(
+      'addItem rejects when cart is full without invoking use case',
+      () async {
+        final fullCart = Cart(
+          items: [tItem.copyWith(quantity: 99, stock: 100)],
+        );
+        when(
+          () => mockGetCart(),
+        ).thenAnswer((_) async => Result.success(fullCart));
+
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        final notifier = container.read(cartNotifierProvider.notifier);
+        await notifier.loadCart();
+
+        final success = await notifier.addItem(tProduct, quantity: 1);
+
+        expect(success, isFalse);
+        final state = container.read(cartNotifierProvider);
+        expect(
+          state.errorMessage,
+          'Your cart is full. Remove an item or reduce quantities to add more.',
+        );
+        verifyZeroInteractions(mockAddToCart);
+      },
+    );
+
+    test('incrementQuantity warns when cart has reached maxCapacity', () async {
+      final fullCart = Cart(
+        items: [
+          tItem.copyWith(quantity: 1, stock: 10),
+          CartItem(
+            productId: 999,
+            title: 'Other',
+            price: 1.0,
+            thumbnail: '',
+            stock: 100,
+            quantity: 98,
+          ),
+        ],
+      );
+      when(
+        () => mockGetCart(),
+      ).thenAnswer((_) async => Result.success(fullCart));
+
+      final container = createContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(cartNotifierProvider.notifier);
+      await notifier.loadCart();
+
+      await notifier.incrementQuantity(1);
+
+      final state = container.read(cartNotifierProvider);
+      expect(
+        state.errorMessage,
+        'Your cart is full. Remove an item or reduce quantities to add more.',
+      );
+      verifyNever(() => mockUpdateQuantity(any(), any()));
+    });
+
     test('incrementQuantity warns if item is already at stock limit', () async {
       final maxedCart = Cart(items: [tItem.copyWith(quantity: 3, stock: 3)]);
       when(

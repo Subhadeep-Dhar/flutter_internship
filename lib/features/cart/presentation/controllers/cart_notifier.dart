@@ -89,6 +89,14 @@ class CartNotifier extends Notifier<CartState> {
 
   /// Adds a [Product] to the cart with the given [quantity].
   Future<bool> addItem(Product product, {int quantity = 1}) async {
+    if (state.cart.isFull) {
+      state = state.copyWith(
+        errorMessage: () =>
+            'Your cart is full. Remove an item or reduce quantities to add more.',
+      );
+      return false;
+    }
+
     final result = await _addToCartUseCase(product, quantity: quantity);
     if (!ref.mounted) return false;
 
@@ -115,6 +123,14 @@ class CartNotifier extends Notifier<CartState> {
   Future<void> incrementQuantity(int productId) async {
     final item = state.cart.findByProductId(productId);
     if (item == null) return;
+
+    if (state.cart.isFull) {
+      state = state.copyWith(
+        errorMessage: () =>
+            'Your cart is full. Remove an item or reduce quantities to add more.',
+      );
+      return;
+    }
 
     if (item.isAtStockLimit) {
       state = state.copyWith(

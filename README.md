@@ -244,14 +244,14 @@ ShopSphere implements a feature-first, offline-resilient Cart and Checkout archi
 ### 1. Domain Layer (`lib/features/cart/domain/`)
 * **Entities**:
   * `CartItem`: Immutable entity encapsulating `productId`, `title`, unit `price`, `discountPercentage`, `thumbnail`, `stock`, and `quantity`. Computed getters provide `effectiveUnitPrice`, `lineTotal`, `originalLineTotal`, `totalSavings`, and `isAtStockLimit`.
-  * `Cart`: Immutable container of cart items calculating `totalItems`, `uniqueItemCount`, `subtotal`, `totalDiscount`, `grandTotal`, `isEmpty`, `containsProduct`, and `findByProductId`.
+  * `Cart`: Immutable container of cart items calculating `totalItems`, `uniqueItemCount`, `subtotal`, `totalDiscount`, `grandTotal`, `isEmpty`, `containsProduct`, and `findByProductId`. Enforces cart-wide limit of **99 total units** via `Cart.maxCapacity`, with reactive getters `isFull`, `remainingCapacity`, and pure method `maxAddableForProduct(stock, productId)` accounting for available inventory, quantity in cart, and cart capacity.
   * `CheckoutResult`: Domain model capturing server-confirmed order creation (`id`, `total`, `discountedTotal`, `totalProducts`, `totalQuantity`, `userId`).
 * **Repository Contract (`CartRepository`)**:
   * Pure Dart contract declaring `getCart()`, `addToCart(product, quantity)`, `updateQuantity(productId, quantity)`, `removeFromCart(productId)`, `clearCart()`, and `checkout(userId)`.
 * **Use Cases**:
   * `GetCartUseCase`: Retrieves active cart.
-  * `AddToCartUseCase`: Adds product or increments quantity without duplicates; enforces stock limit validation.
-  * `UpdateCartItemQuantityUseCase`: Updates quantity, clamps to stock limits, or removes item when quantity reaches 0.
+  * `AddToCartUseCase`: Adds product or increments quantity without duplicates; enforces cart capacity and stock limit validation.
+  * `UpdateCartItemQuantityUseCase`: Updates quantity, clamps to stock and cart capacity limits, or removes item when quantity reaches 0.
   * `RemoveFromCartUseCase`: Removes individual product from cart.
   * `ClearCartUseCase`: Clears all cart items with persistent synchronization.
   * `CheckoutUseCase`: Submits order to DummyJSON `POST /carts/add` and clears local cart upon confirmed success.
@@ -265,25 +265,32 @@ ShopSphere implements a feature-first, offline-resilient Cart and Checkout archi
   * Consumes DummyJSON `POST /carts/add` via the centralized Dio client.
   * Packages cart products with user ID and validates remote HTTP 200/201 responses.
 * **Repository Implementation (`CartRepositoryImpl`)**:
-  * Orchestrates local persistence and remote order submission.
+  * Orchestrates local persistence, capacity validation, and remote order submission.
+  * Validates and returns `ValidationFailure` when cart is full or requested quantity exceeds addable limits.
   * **Failure Isolation**: A failed remote checkout (network outage, server error) **preserves the local cart**; the cart is only wiped if the remote checkout succeeds.
 
 ### 3. State Management (`lib/features/cart/presentation/controllers/`)
 * **Riverpod 3 Controller (`CartNotifier`)**:
   * Managed via `NotifierProvider<CartNotifier, CartState>`.
   * State (`CartState`) exposes explicit statuses: `initial`, `loading`, `ready`, `checkingOut`, `checkoutSuccess`, and `error`.
+  * Defensively validates `state.cart.isFull` in `addItem` and `incrementQuantity` to protect against rapid taps and race conditions.
   * Microtask-based initial load with `_hasInitialLoaded` guard preventing duplicate loads and race conditions.
   * Reactive `cartItemCountProvider` drives the badge count across the app.
 
 ### 4. UI & Responsive Design (`lib/features/cart/presentation/`)
 * **Cart Badge (`CartBadgeIconButton`)**:
   * Present on AppBar in both `HomePage` (catalogue) and `ProductDetailPage`.
-  * Real-time badge pill showing current item count; tapped icon pushes `/cart`.
+  * Real-time badge pill showing current item count (`99+` at capacity); tapped icon pushes `/cart`.
 * **Product Detail Add to Cart (`AddToCartSection`)**:
-  * Interactive quantity stepper respecting product inventory.
-  * Dynamically computes line total based on discounted price.
-  * "Add to Cart" button disabled with "Out of Stock" state when `product.isInStock == false`.
-  * Floating SnackBar confirmation with immediate "VIEW CART" action.
+  * **API Stock Visibility**: Renders real inventory as `"Available stock: N units"`, selected quantity, and maximum additional quantity that can be added in the current cart state.
+  * **Cart Capacity Feedback**: When the cart is full (`totalItems >= 99`), displays an immediate visible inline banner: `"Your cart is full. Remove an item or reduce quantities to add more."` without relying on SnackBars or opening the cart.
+  * **Reactive Button States**: Add to Cart button disables and updates its label with distinct reasons:
+    * `"Cart Full"` when cart capacity limit is reached.
+    * `"Stock Limit Reached"` when all available units of that product are already in cart.
+    * `"Out of Stock"` when product stock is 0.
+  * **Reactive Re-enabling**: When capacity is freed (e.g. from the cart page or another screen), the button and stepper immediately re-enable reactively without requiring a page reload.
+  * **Quantity Stepper Guard**: Increment controls disable once the calculated upper bound is reached, with helpful explanatory hints distinguishing stock bottlenecks from cart capacity bottlenecks.
+  * Floating SnackBar confirmation with immediate "VIEW CART" action on successful addition.
 * **Responsive Cart Page (`CartPage`)**:
   * **Compact / Mobile** (`< 600 dp`): Vertical scrolling list of item cards followed by sticky order summary.
   * **Medium / Tablet / Desktop** (`>= 600 dp`): Side-by-side dual-column layout with scrollable item list on the left and elevated order summary on the right.

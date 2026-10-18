@@ -9,7 +9,7 @@ import '../../../../routing/app_router.dart';
 import '../../../products/domain/entities/product.dart';
 
 /// Interactive section embedded on the Product Details page providing a quantity
-/// stepper, stock limits validation, and Add to Cart action button.
+/// stepper, stock limits validation, cart-wide capacity feedback, and Add to Cart action button.
 class AddToCartSection extends ConsumerStatefulWidget {
   final Product product;
 
@@ -22,27 +22,26 @@ class AddToCartSection extends ConsumerStatefulWidget {
 class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
   int _quantity = 1;
 
-  int get _maxStock => widget.product.stock > 0 ? widget.product.stock : 99;
-
-  void _increment() {
-    if (_quantity < _maxStock) {
+  void _increment(int effectiveQuantity, int maxAddable) {
+    if (effectiveQuantity < maxAddable) {
       setState(() {
-        _quantity++;
+        _quantity = effectiveQuantity + 1;
       });
     }
   }
 
-  void _decrement() {
-    if (_quantity > 1) {
+  void _decrement(int effectiveQuantity) {
+    if (effectiveQuantity > 1) {
       setState(() {
-        _quantity--;
+        _quantity = effectiveQuantity - 1;
       });
     }
   }
 
-  Future<void> _onAddToCart() async {
+  Future<void> _onAddToCart(int quantity) async {
+    if (quantity <= 0) return;
     final notifier = ref.read(cartNotifierProvider.notifier);
-    final success = await notifier.addItem(widget.product, quantity: _quantity);
+    final success = await notifier.addItem(widget.product, quantity: quantity);
 
     if (!mounted) return;
 
@@ -51,10 +50,13 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     if (success) {
+      setState(() {
+        _quantity = 1;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Added $_quantity × "${widget.product.title}" to cart',
+            'Added $quantity × "${widget.product.title}" to cart',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -85,8 +87,24 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final cart = ref.watch(cartNotifierProvider).cart;
+    final productStock = widget.product.stock;
     final inStock = widget.product.isInStock;
-    final totalAmount = widget.product.effectivePrice * _quantity;
+    final inCart = cart.findByProductId(widget.product.id)?.quantity ?? 0;
+    final isCartFull = cart.isFull;
+    final isStockLimitReached = inStock && inCart >= productStock;
+    final maxAddable = cart.maxAddableForProduct(
+      productStock,
+      widget.product.id,
+    );
+    final canAdd = maxAddable > 0;
+    final effectiveQuantity = canAdd ? _quantity.clamp(1, maxAddable) : 0;
+    final remainingStockForProduct = (productStock - inCart).clamp(
+      0,
+      productStock,
+    );
+    final totalAmount = widget.product.effectivePrice * effectiveQuantity;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -102,11 +120,39 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                'Quantity',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quantity',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2.0),
+                    Text(
+                      inStock
+                          ? 'Available stock: $productStock units'
+                          : 'Out of stock',
+                      key: const Key('available_stock_text'),
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w600,
+                        color: !inStock
+                            ? AppColors.error
+                            : (widget.product.isLowStock
+                                  ? (isDark
+                                        ? AppColors.darkSaleOrange
+                                        : AppColors.saleOrange)
+                                  : (isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.textSecondary)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -134,13 +180,15 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
                         minWidth: 40.0,
                         minHeight: 40.0,
                       ),
-                      onPressed: inStock && _quantity > 1 ? _decrement : null,
+                      onPressed: canAdd && effectiveQuantity > 1
+                          ? () => _decrement(effectiveQuantity)
+                          : null,
                     ),
                     Container(
                       constraints: const BoxConstraints(minWidth: 32.0),
                       alignment: Alignment.center,
                       child: Text(
-                        '$_quantity',
+                        '$effectiveQuantity',
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -154,8 +202,8 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
                         minWidth: 40.0,
                         minHeight: 40.0,
                       ),
-                      onPressed: inStock && _quantity < _maxStock
-                          ? _increment
+                      onPressed: canAdd && effectiveQuantity < maxAddable
+                          ? () => _increment(effectiveQuantity, maxAddable)
                           : null,
                     ),
                   ],
@@ -164,14 +212,213 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
             ],
           ),
 
-          if (inStock && widget.product.isLowStock) ...[
-            AppSpacing.gapXs,
+          AppSpacing.gapSm,
+
+          // Real API Stock & Capacity Info Row
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (inCart > 0) ...[
+                Text(
+                  '($inCart in cart)',
+                  key: const Key('in_cart_quantity_text'),
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w500,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  '•',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              Text(
+                'Max additional: $maxAddable',
+                key: const Key('max_additional_quantity_text'),
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w600,
+                  color: maxAddable == 0
+                      ? (isDark
+                            ? AppColors.darkSaleOrange
+                            : AppColors.saleOrange)
+                      : (isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary),
+                ),
+              ),
+              Text(
+                '•',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                'Selected: $effectiveQuantity',
+                key: const Key('selected_quantity_text'),
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+
+          // Informative helper when stepper reaches upper bound
+          if (canAdd && effectiveQuantity >= maxAddable) ...[
+            const SizedBox(height: 4.0),
             Text(
-              'Only ${widget.product.stock} units left in stock',
+              maxAddable < remainingStockForProduct
+                  ? 'Cart capacity limit reached: you can add at most $maxAddable more units.'
+                  : 'Stock limit reached: you can add at most $maxAddable more units.',
               style: TextStyle(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w600,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                fontStyle: FontStyle.italic,
                 color: isDark ? AppColors.darkSaleOrange : AppColors.saleOrange,
+              ),
+            ),
+          ],
+
+          // Distinct inline status banners for zero addable capacity
+          if (!inStock) ...[
+            AppSpacing.gapSm,
+            Container(
+              key: const Key('out_of_stock_inline_message'),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.error.withValues(alpha: 0.15)
+                    : AppColors.errorContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                border: Border.all(color: AppColors.error, width: 1.0),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.cancel_outlined,
+                    size: 18.0,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Expanded(
+                    child: Text(
+                      'This product is currently out of stock.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isCartFull) ...[
+            AppSpacing.gapSm,
+            Container(
+              key: const Key('cart_full_inline_message'),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.saleOrange.withValues(alpha: 0.15)
+                    : AppColors.saleOrangeContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.darkSaleOrange
+                      : AppColors.saleOrange,
+                  width: 1.0,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 18.0,
+                    color: isDark
+                        ? AppColors.darkSaleOrange
+                        : AppColors.saleOrange,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'Your cart is full. Remove an item or reduce quantities to add more.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.darkSaleOrange
+                            : AppColors.onSaleOrangeContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isStockLimitReached) ...[
+            AppSpacing.gapSm,
+            Container(
+              key: const Key('stock_limit_inline_message'),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.darkSurfaceVariant
+                    : AppColors.ivorySurfaceVariant,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.ivoryBorder,
+                  width: 1.0,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 18.0,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'You already have all $productStock available units in your cart.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -182,7 +429,7 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
 
           // Add to Cart Action Button
           ElevatedButton(
-            onPressed: inStock ? _onAddToCart : null,
+            onPressed: canAdd ? () => _onAddToCart(effectiveQuantity) : null,
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(48.0),
               backgroundColor: isDark
@@ -206,16 +453,24 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    inStock
-                        ? Icons.add_shopping_cart_rounded
-                        : Icons.remove_shopping_cart_outlined,
+                    !inStock
+                        ? Icons.remove_shopping_cart_outlined
+                        : (isCartFull
+                              ? Icons.shopping_bag_outlined
+                              : (isStockLimitReached
+                                    ? Icons.inventory_2_outlined
+                                    : Icons.add_shopping_cart_rounded)),
                     size: 20.0,
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
-                    inStock
-                        ? 'Add to Cart  •  \$${totalAmount.toStringAsFixed(2)}'
-                        : 'Out of Stock',
+                    !inStock
+                        ? 'Out of Stock'
+                        : (isCartFull
+                              ? 'Cart Full'
+                              : (isStockLimitReached
+                                    ? 'Stock Limit Reached'
+                                    : 'Add to Cart  •  \$${totalAmount.toStringAsFixed(2)}')),
                     style: const TextStyle(
                       fontSize: 15.0,
                       fontWeight: FontWeight.w700,

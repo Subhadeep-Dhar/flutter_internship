@@ -159,6 +159,58 @@ void main() {
           verifyNever(() => mockLocalDataSource.saveCart(any()));
         },
       );
+
+      test(
+        'returns ValidationFailure when cart has reached maximum capacity of 99 units',
+        () async {
+          final fullItem = CartItemModel(
+            productId: 99,
+            title: 'Bulk Item',
+            price: 5.0,
+            thumbnail: '',
+            stock: 100,
+            quantity: 99,
+          );
+          when(
+            () => mockLocalDataSource.getCart(),
+          ).thenAnswer((_) async => CartModel(items: [fullItem]));
+
+          final result = await repository.addToCart(tProduct, 1);
+
+          expect(result.isError, isTrue);
+          expect(result.failureOrNull, isA<ValidationFailure>());
+          expect(
+            result.failureOrNull?.message,
+            contains(
+              'Your cart is full. Remove an item or reduce quantities to add more.',
+            ),
+          );
+          verifyNever(() => mockLocalDataSource.saveCart(any()));
+        },
+      );
+
+      test(
+        'returns ValidationFailure when requested quantity exceeds addable limit',
+        () async {
+          final existingItem = CartItemModel.fromEntity(
+            CartItem.fromProduct(tProduct, quantity: 2), // stock is 4
+          );
+          when(
+            () => mockLocalDataSource.getCart(),
+          ).thenAnswer((_) async => CartModel(items: [existingItem]));
+
+          // Remaining stock is 2, but requesting 3
+          final result = await repository.addToCart(tProduct, 3);
+
+          expect(result.isError, isTrue);
+          expect(result.failureOrNull, isA<ValidationFailure>());
+          expect(
+            result.failureOrNull?.message,
+            contains('Only 2 more can be added to your cart'),
+          );
+          verifyNever(() => mockLocalDataSource.saveCart(any()));
+        },
+      );
     });
 
     group('updateQuantity', () {
