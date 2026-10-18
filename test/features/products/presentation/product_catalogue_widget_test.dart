@@ -34,6 +34,7 @@ class FakeAuthNotifier extends AuthNotifier {
 class FakeProductListNotifier extends ProductListNotifier {
   final ProductListState initialState;
   bool loadInitialCalled = false;
+  bool retryCalled = false;
   bool clearFiltersCalled = false;
   String? selectedCategoryParam;
   String? searchInputParam;
@@ -46,6 +47,15 @@ class FakeProductListNotifier extends ProductListNotifier {
   @override
   Future<void> loadInitial() async {
     loadInitialCalled = true;
+  }
+
+  @override
+  Future<void> retry() async {
+    retryCalled = true;
+    if (initialState.failedOperation == FailedOperation.initialLoad ||
+        initialState.products.isEmpty) {
+      loadInitialCalled = true;
+    }
   }
 
   @override
@@ -234,6 +244,7 @@ void main() {
             status: ProductListStatus.error,
             products: [],
             errorMessage: 'Server unavailable (500)',
+            failedOperation: FailedOperation.initialLoad,
           ),
         );
 
@@ -246,12 +257,148 @@ void main() {
         await tester.pump();
 
         expect(find.text('Server unavailable (500)'), findsOneWidget);
-        expect(find.text('Try Again'), findsOneWidget);
+        expect(find.text('Retry'), findsOneWidget);
 
-        await tester.tap(find.text('Try Again'));
+        await tester.tap(find.text('Retry'));
         await tester.pump();
 
         expect(fakeNotifier.loadInitialCalled, isTrue);
+      },
+    );
+
+    testWidgets(
+      'initial catalogue failure renders visible error and Retry button without scrolling',
+      (tester) async {
+        final fakeNotifier = FakeProductListNotifier(
+          const ProductListState(
+            status: ProductListStatus.error,
+            products: [],
+            errorMessage:
+                'No internet connection. Please check your network and retry.',
+            failedOperation: FailedOperation.initialLoad,
+          ),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productState: fakeNotifier.initialState,
+            fakeNotifier: fakeNotifier,
+          ),
+        );
+        await tester.pump();
+
+        // 1. Error message and Retry button must be present in widget tree
+        final errorFinder = find.text(
+          'No internet connection. Please check your network and retry.',
+        );
+        final retryFinder = find.widgetWithText(FilledButton, 'Retry');
+
+        expect(errorFinder, findsOneWidget);
+        expect(retryFinder, findsOneWidget);
+
+        // 2. Both must be immediately visible without scrolling (within viewport)
+        final retryCenter = tester.getCenter(retryFinder);
+        expect(retryCenter.dy, greaterThan(0));
+        expect(retryCenter.dy, lessThan(600));
+
+        // 3. Tapping Retry must succeed directly without requiring any scroll
+        await tester.tap(retryFinder);
+        await tester.pump();
+
+        expect(fakeNotifier.retryCalled, isTrue);
+        expect(fakeNotifier.loadInitialCalled, isTrue);
+      },
+    );
+
+    testWidgets(
+      'failed refresh displays a top-level banner while existing products remain visible',
+      (tester) async {
+        final fakeNotifier = FakeProductListNotifier(
+          const ProductListState(
+            status: ProductListStatus.loaded,
+            products: [tProduct],
+            bannerErrorMessage:
+                'Could not refresh catalogue. Check connection.',
+            failedOperation: FailedOperation.refresh,
+          ),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productState: fakeNotifier.initialState,
+            fakeNotifier: fakeNotifier,
+          ),
+        );
+        await tester.pump();
+
+        // 1. Persistent top-level banner is displayed
+        final bannerFinder = find.byKey(const ValueKey('product_error_banner'));
+        expect(bannerFinder, findsOneWidget);
+        expect(
+          find.text('Could not refresh catalogue. Check connection.'),
+          findsOneWidget,
+        );
+
+        // 2. Existing product items are preserved and visible
+        final productFinder = find.text('Wireless Earbuds');
+        expect(productFinder, findsOneWidget);
+
+        // 3. Top-level banner is positioned above the product grid
+        final bannerTop = tester.getTopLeft(bannerFinder).dy;
+        final productTop = tester.getTopLeft(productFinder).dy;
+        expect(bannerTop, lessThan(productTop));
+
+        // 4. Retry button in top-level banner is clickable
+        final retryButton = find.byKey(const ValueKey('banner_retry_button'));
+        expect(retryButton, findsOneWidget);
+        await tester.tap(retryButton);
+        await tester.pump();
+
+        expect(fakeNotifier.retryCalled, isTrue);
+      },
+    );
+
+    testWidgets(
+      'failed pagination request displays top-level banner while list is scrolled to top',
+      (tester) async {
+        final fakeNotifier = FakeProductListNotifier(
+          const ProductListState(
+            status: ProductListStatus.loaded,
+            products: [tProduct],
+            paginationErrorMessage: 'Unable to load more items.',
+            bannerErrorMessage: 'Unable to load more items.',
+            failedOperation: FailedOperation.loadMore,
+          ),
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productState: fakeNotifier.initialState,
+            fakeNotifier: fakeNotifier,
+          ),
+        );
+        await tester.pump();
+
+        // 1. Persistent top-level banner is rendered immediately outside scroll view
+        final bannerFinder = find.byKey(const ValueKey('product_error_banner'));
+        expect(bannerFinder, findsOneWidget);
+        expect(
+          find.text('Unable to load more items.'),
+          findsAtLeastNWidgets(1),
+        );
+
+        // 2. Banner and its Retry button are visible without scrolling
+        final retryButton = find.byKey(const ValueKey('banner_retry_button'));
+        expect(retryButton, findsOneWidget);
+        final retryCenter = tester.getCenter(retryButton);
+        expect(retryCenter.dy, greaterThan(0));
+        expect(retryCenter.dy, lessThan(600));
+
+        // 3. Tapping Retry in top-level banner dispatches retry
+        await tester.tap(retryButton);
+        await tester.pump();
+
+        expect(fakeNotifier.retryCalled, isTrue);
       },
     );
   });

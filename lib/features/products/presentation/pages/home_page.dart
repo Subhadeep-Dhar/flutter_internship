@@ -13,6 +13,7 @@ import '../../../../routing/app_router.dart';
 import '../controllers/product_list_state.dart';
 import '../widgets/category_chips_bar.dart';
 import '../widgets/product_card.dart';
+import '../widgets/product_error_banner.dart';
 import '../widgets/product_grid_skeleton.dart';
 import '../widgets/product_search_bar.dart';
 import '../widgets/product_sort_bottom_sheet.dart';
@@ -33,7 +34,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ref.read(productListNotifierProvider).isInitial) {
+      final state = ref.read(productListNotifierProvider);
+      if (state.isInitial || (state.isError && state.products.isEmpty)) {
         ref.read(productListNotifierProvider.notifier).loadInitial();
       }
     });
@@ -231,6 +233,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
 
+            // Top-Level Error Banner (visible without scrolling for refresh / pagination failures)
+            if (productState.bannerErrorMessage != null) ...[
+              ProductErrorBanner(
+                message: productState.bannerErrorMessage!,
+                onRetry: productNotifier.retry,
+                onDismiss: productNotifier.dismissBannerError,
+                isRetrying:
+                    productState.isLoadingMore || productState.isRefreshing,
+              ),
+              AppSpacing.gapSm,
+            ],
+
             // Main Catalogue Content Area
             Expanded(
               child: _buildCatalogueContent(
@@ -253,7 +267,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     required int columnCount,
   }) {
     // 1. Initial Loading State: Animated Skeletons
-    if (state.isLoading && state.products.isEmpty) {
+    if ((state.isLoading || state.isInitial) && state.products.isEmpty) {
       return const ProductGridSkeleton();
     }
 
@@ -263,7 +277,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         message:
             state.errorMessage ??
             'Unable to connect to the catalogue. Please check your internet connection and try again.',
-        onRetry: () => notifier.loadInitial(),
+        retryLabel: 'Retry',
+        onRetry: () => notifier.retry(),
       );
     }
 
@@ -325,7 +340,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               child: _buildPaginationFooter(
                 state: state,
-                onRetryPagination: () => notifier.loadMore(),
+                onRetryPagination: () => notifier.retry(),
               ),
             ),
           ),

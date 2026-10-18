@@ -237,33 +237,208 @@ void main() {
       },
     );
 
-    test('loadMore preserves existing products when pagination fails', () async {
-      final container = createContainer();
-      addTearDown(container.dispose);
+    test(
+      'loadMore preserves existing products and exposes bannerErrorMessage when pagination fails',
+      () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
 
-      final notifier = container.read(productListNotifierProvider.notifier);
-      await notifier.loadInitial();
+        final notifier = container.read(productListNotifierProvider.notifier);
+        await notifier.loadInitial();
 
-      when(
-        () => mockGetProductsUseCase(
-          limit: any(named: 'limit'),
+        when(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 1,
+            sort: any(named: 'sort'),
+          ),
+        ).thenAnswer(
+          (_) async => const Result.error(
+            ServerFailure(
+              message: 'Failed to fetch next page',
+              statusCode: 500,
+            ),
+          ),
+        );
+
+        await notifier.loadMore();
+
+        final state = container.read(productListNotifierProvider);
+        // Status remains loaded, existing products are preserved, errors and failedOperation are set
+        expect(state.status, ProductListStatus.loaded);
+        expect(state.products.length, 1);
+        expect(state.paginationErrorMessage, 'Failed to fetch next page');
+        expect(state.bannerErrorMessage, 'Failed to fetch next page');
+        expect(state.failedOperation, FailedOperation.loadMore);
+      },
+    );
+
+    test(
+      'refresh preserves existing products and displays banner on failure',
+      () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        final notifier = container.read(productListNotifierProvider.notifier);
+        await notifier.loadInitial();
+
+        when(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 0,
+            sort: any(named: 'sort'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              const Result.error(NetworkFailure(message: 'Network offline')),
+        );
+
+        await notifier.refresh();
+
+        final state = container.read(productListNotifierProvider);
+        expect(state.status, ProductListStatus.loaded);
+        expect(state.products.length, 1);
+        expect(state.bannerErrorMessage, 'Network offline');
+        expect(state.failedOperation, FailedOperation.refresh);
+      },
+    );
+
+    test(
+      'retry after failed refresh clears banner and loads refreshed products',
+      () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        final notifier = container.read(productListNotifierProvider.notifier);
+        await notifier.loadInitial();
+
+        // Simulate refresh failure
+        when(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 0,
+            sort: any(named: 'sort'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              const Result.error(NetworkFailure(message: 'Network offline')),
+        );
+
+        await notifier.refresh();
+        expect(
+          container.read(productListNotifierProvider).bannerErrorMessage,
+          'Network offline',
+        );
+
+        // Simulate successful recovery
+        when(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 0,
+            sort: any(named: 'sort'),
+          ),
+        ).thenAnswer((_) async => const Result.success(tInitialPage));
+
+        await notifier.retry();
+
+        final state = container.read(productListNotifierProvider);
+        expect(state.bannerErrorMessage, isNull);
+        expect(state.failedOperation, FailedOperation.none);
+        expect(state.products.length, 1);
+      },
+    );
+
+    test(
+      'retry after failed pagination clears banner and appends next page',
+      () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        final notifier = container.read(productListNotifierProvider.notifier);
+        await notifier.loadInitial();
+
+        // Simulate pagination failure
+        when(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 1,
+            sort: any(named: 'sort'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              const Result.error(NetworkFailure(message: 'Pagination timeout')),
+        );
+
+        await notifier.loadMore();
+        expect(
+          container.read(productListNotifierProvider).bannerErrorMessage,
+          'Pagination timeout',
+        );
+
+        // Simulate successful recovery
+        when(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 1,
+            sort: any(named: 'sort'),
+          ),
+        ).thenAnswer((_) async => const Result.success(tSecondPage));
+
+        await notifier.retry();
+
+        final state = container.read(productListNotifierProvider);
+        expect(state.bannerErrorMessage, isNull);
+        expect(state.paginationErrorMessage, isNull);
+        expect(state.failedOperation, FailedOperation.none);
+        expect(state.products.length, 2);
+      },
+    );
+
+    test(
+      'pagination retry deduplicates products and prevents concurrent overlapping requests',
+      () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        final notifier = container.read(productListNotifierProvider.notifier);
+        await notifier.loadInitial();
+
+        // Second page returns both tProduct1 (duplicate) and tProduct2
+        const tOverlappingSecondPage = PaginatedProducts(
+          products: [tProduct1, tProduct2],
+          total: 2,
           skip: 1,
-          sort: any(named: 'sort'),
-        ),
-      ).thenAnswer(
-        (_) async => const Result.error(
-          ServerFailure(message: 'Failed to fetch next page', statusCode: 500),
-        ),
-      );
+          limit: 2,
+        );
 
-      await notifier.loadMore();
+        when(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 1,
+            sort: any(named: 'sort'),
+          ),
+        ).thenAnswer((_) async => const Result.success(tOverlappingSecondPage));
 
-      final state = container.read(productListNotifierProvider);
-      // Status remains loaded, existing products are preserved, paginationErrorMessage is set
-      expect(state.status, ProductListStatus.loaded);
-      expect(state.products.length, 1);
-      expect(state.paginationErrorMessage, 'Failed to fetch next page');
-    });
+        // Concurrent retries
+        final f1 = notifier.retry();
+        final f2 = notifier.retry();
+        await Future.wait([f1, f2]);
+
+        final state = container.read(productListNotifierProvider);
+        // Product 1 should NOT be duplicated
+        expect(state.products.length, 2);
+        expect(state.products.map((p) => p.id).toList(), [1, 2]);
+
+        // Repository should only have been called once for skip: 1
+        verify(
+          () => mockGetProductsUseCase(
+            limit: any(named: 'limit'),
+            skip: 1,
+            sort: any(named: 'sort'),
+          ),
+        ).called(1);
+      },
+    );
 
     test(
       'selectCategory resets pagination and loads category products',

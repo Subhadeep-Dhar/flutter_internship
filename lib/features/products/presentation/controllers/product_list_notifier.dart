@@ -60,6 +60,8 @@ class ProductListNotifier extends Notifier<ProductListState> {
       status: ProductListStatus.loading,
       errorMessage: () => null,
       paginationErrorMessage: () => null,
+      bannerErrorMessage: () => null,
+      failedOperation: FailedOperation.none,
     );
 
     final requestId = ++_activeRequestId;
@@ -88,12 +90,17 @@ class ProductListNotifier extends Notifier<ProductListState> {
           total: paginated.total,
           hasMore: paginated.hasMore,
           errorMessage: () => null,
+          bannerErrorMessage: () => null,
+          paginationErrorMessage: () => null,
+          failedOperation: FailedOperation.none,
         );
       },
       error: (failure) {
         state = state.copyWith(
           status: ProductListStatus.error,
           errorMessage: () => failure.message,
+          bannerErrorMessage: () => null,
+          failedOperation: FailedOperation.initialLoad,
         );
       },
     );
@@ -101,19 +108,27 @@ class ProductListNotifier extends Notifier<ProductListState> {
 
   /// Fetches available categories from the server.
   Future<void> _loadCategories() async {
-    final result = await _categoriesUseCase();
-    result.when(
-      success: (categories) {
-        state = state.copyWith(categories: categories);
-      },
-      error: (_) {
-        // Silently preserve existing categories or fallback to empty
-      },
-    );
+    try {
+      final result = await _categoriesUseCase();
+      result.when(
+        success: (categories) {
+          state = state.copyWith(categories: categories);
+        },
+        error: (_) {
+          // Silently preserve existing categories or fallback to empty
+        },
+      );
+    } catch (_) {
+      // Silently catch to prevent uncaught async exceptions
+    }
   }
 
   /// Refreshes the active product catalogue while preserving current filters.
   Future<void> refresh() async {
+    if (state.isLoading || state.isLoadingMore || state.isRefreshing) {
+      return;
+    }
+
     final requestId = ++_activeRequestId;
 
     state = state.copyWith(
@@ -146,26 +161,39 @@ class ProductListNotifier extends Notifier<ProductListState> {
           hasMore: paginated.hasMore,
           isRefreshing: false,
           errorMessage: () => null,
+          bannerErrorMessage: () => null,
+          paginationErrorMessage: () => null,
+          failedOperation: FailedOperation.none,
         );
       },
       error: (failure) {
-        state = state.copyWith(
-          isRefreshing: false,
-          // Only show full error if we had no products previously
-          status: state.products.isEmpty
-              ? ProductListStatus.error
-              : state.status,
-          errorMessage: state.products.isEmpty
-              ? () => failure.message
-              : () => null,
-        );
+        if (state.products.isEmpty) {
+          state = state.copyWith(
+            isRefreshing: false,
+            status: ProductListStatus.error,
+            errorMessage: () => failure.message,
+            bannerErrorMessage: () => null,
+            failedOperation: FailedOperation.initialLoad,
+          );
+        } else {
+          // Preserve existing products and show persistent top banner
+          state = state.copyWith(
+            isRefreshing: false,
+            bannerErrorMessage: () => failure.message,
+            failedOperation: FailedOperation.refresh,
+          );
+        }
       },
     );
   }
 
   /// Infinite scroll pagination: retrieves the next page without replacing existing items.
   Future<void> loadMore() async {
-    if (!state.hasMore || state.isLoadingMore || state.isLoading) {
+    if (!state.hasMore ||
+        state.isLoadingMore ||
+        state.isLoading ||
+        state.isRefreshing ||
+        state.paginationErrorMessage != null) {
       return;
     }
 
@@ -188,7 +216,12 @@ class ProductListNotifier extends Notifier<ProductListState> {
 
     result.when(
       success: (paginated) {
-        final combinedProducts = [...state.products, ...paginated.products];
+        // Prevent duplicate items when appending
+        final existingIds = state.products.map((p) => p.id).toSet();
+        final newProducts = paginated.products
+            .where((p) => !existingIds.contains(p.id))
+            .toList();
+        final combinedProducts = [...state.products, ...newProducts];
 
         state = state.copyWith(
           status: ProductListStatus.loaded,
@@ -198,6 +231,8 @@ class ProductListNotifier extends Notifier<ProductListState> {
           total: paginated.total,
           hasMore: paginated.hasMore,
           paginationErrorMessage: () => null,
+          bannerErrorMessage: () => null,
+          failedOperation: FailedOperation.none,
         );
       },
       error: (failure) {
@@ -205,9 +240,46 @@ class ProductListNotifier extends Notifier<ProductListState> {
         state = state.copyWith(
           status: ProductListStatus.loaded,
           paginationErrorMessage: () => failure.message,
+          bannerErrorMessage: () => failure.message,
+          failedOperation: FailedOperation.loadMore,
         );
       },
     );
+  }
+
+  /// Retries the previously failed operation (initial load, refresh, or loadMore).
+  Future<void> retry() async {
+    if (state.isLoading || state.isLoadingMore || state.isRefreshing) {
+      return;
+    }
+
+    switch (state.failedOperation) {
+      case FailedOperation.initialLoad:
+        return loadInitial();
+      case FailedOperation.refresh:
+        return refresh();
+      case FailedOperation.loadMore:
+        state = state.copyWith(
+          paginationErrorMessage: () => null,
+          bannerErrorMessage: () => null,
+        );
+        return loadMore();
+      case FailedOperation.none:
+        if (state.products.isEmpty) {
+          return loadInitial();
+        } else if (state.hasMore) {
+          state = state.copyWith(
+            paginationErrorMessage: () => null,
+            bannerErrorMessage: () => null,
+          );
+          return loadMore();
+        }
+    }
+  }
+
+  /// Dismisses the persistent top banner error without clearing failedOperation.
+  void dismissBannerError() {
+    state = state.copyWith(bannerErrorMessage: () => null);
   }
 
   /// Debounces user input from the search text field (~400ms).
@@ -236,6 +308,8 @@ class ProductListNotifier extends Notifier<ProductListState> {
       skip: 0,
       errorMessage: () => null,
       paginationErrorMessage: () => null,
+      bannerErrorMessage: () => null,
+      failedOperation: FailedOperation.none,
     );
 
     final result = await _fetchPage(
@@ -259,12 +333,17 @@ class ProductListNotifier extends Notifier<ProductListState> {
           total: paginated.total,
           hasMore: paginated.hasMore,
           errorMessage: () => null,
+          bannerErrorMessage: () => null,
+          paginationErrorMessage: () => null,
+          failedOperation: FailedOperation.none,
         );
       },
       error: (failure) {
         state = state.copyWith(
           status: ProductListStatus.error,
           errorMessage: () => failure.message,
+          bannerErrorMessage: () => null,
+          failedOperation: FailedOperation.initialLoad,
         );
       },
     );
@@ -286,6 +365,8 @@ class ProductListNotifier extends Notifier<ProductListState> {
       skip: 0,
       errorMessage: () => null,
       paginationErrorMessage: () => null,
+      bannerErrorMessage: () => null,
+      failedOperation: FailedOperation.none,
     );
 
     final result = await _fetchPage(
@@ -309,12 +390,17 @@ class ProductListNotifier extends Notifier<ProductListState> {
           total: paginated.total,
           hasMore: paginated.hasMore,
           errorMessage: () => null,
+          bannerErrorMessage: () => null,
+          paginationErrorMessage: () => null,
+          failedOperation: FailedOperation.none,
         );
       },
       error: (failure) {
         state = state.copyWith(
           status: ProductListStatus.error,
           errorMessage: () => failure.message,
+          bannerErrorMessage: () => null,
+          failedOperation: FailedOperation.initialLoad,
         );
       },
     );
@@ -332,6 +418,8 @@ class ProductListNotifier extends Notifier<ProductListState> {
       skip: 0,
       errorMessage: () => null,
       paginationErrorMessage: () => null,
+      bannerErrorMessage: () => null,
+      failedOperation: FailedOperation.none,
     );
 
     final result = await _fetchPage(
@@ -355,12 +443,17 @@ class ProductListNotifier extends Notifier<ProductListState> {
           total: paginated.total,
           hasMore: paginated.hasMore,
           errorMessage: () => null,
+          bannerErrorMessage: () => null,
+          paginationErrorMessage: () => null,
+          failedOperation: FailedOperation.none,
         );
       },
       error: (failure) {
         state = state.copyWith(
           status: ProductListStatus.error,
           errorMessage: () => failure.message,
+          bannerErrorMessage: () => null,
+          failedOperation: FailedOperation.initialLoad,
         );
       },
     );
@@ -380,6 +473,8 @@ class ProductListNotifier extends Notifier<ProductListState> {
       skip: 0,
       errorMessage: () => null,
       paginationErrorMessage: () => null,
+      bannerErrorMessage: () => null,
+      failedOperation: FailedOperation.none,
     );
 
     final result = await _productsUseCase(
@@ -402,12 +497,17 @@ class ProductListNotifier extends Notifier<ProductListState> {
           total: paginated.total,
           hasMore: paginated.hasMore,
           errorMessage: () => null,
+          bannerErrorMessage: () => null,
+          paginationErrorMessage: () => null,
+          failedOperation: FailedOperation.none,
         );
       },
       error: (failure) {
         state = state.copyWith(
           status: ProductListStatus.error,
           errorMessage: () => failure.message,
+          bannerErrorMessage: () => null,
+          failedOperation: FailedOperation.initialLoad,
         );
       },
     );

@@ -5,6 +5,9 @@ import '../../domain/entities/product_sort_option.dart';
 /// Status states for the product catalogue.
 enum ProductListStatus { initial, loading, loaded, loadingMore, empty, error }
 
+/// Represents the catalogue operation that encountered a failure.
+enum FailedOperation { none, initialLoad, refresh, loadMore }
+
 /// Comprehensive, immutable state model for the product catalogue.
 class ProductListState {
   final ProductListStatus status;
@@ -19,6 +22,8 @@ class ProductListState {
   final bool hasMore;
   final String? errorMessage;
   final String? paginationErrorMessage;
+  final String? bannerErrorMessage;
+  final FailedOperation failedOperation;
   final bool isRefreshing;
 
   const ProductListState({
@@ -34,6 +39,8 @@ class ProductListState {
     this.hasMore = true,
     this.errorMessage,
     this.paginationErrorMessage,
+    this.bannerErrorMessage,
+    this.failedOperation = FailedOperation.none,
     this.isRefreshing = false,
   });
 
@@ -67,6 +74,8 @@ class ProductListState {
     bool? hasMore,
     String? Function()? errorMessage,
     String? Function()? paginationErrorMessage,
+    String? Function()? bannerErrorMessage,
+    FailedOperation? failedOperation,
     bool? isRefreshing,
   }) {
     return ProductListState(
@@ -86,6 +95,10 @@ class ProductListState {
       paginationErrorMessage: paginationErrorMessage != null
           ? paginationErrorMessage()
           : this.paginationErrorMessage,
+      bannerErrorMessage: bannerErrorMessage != null
+          ? bannerErrorMessage()
+          : this.bannerErrorMessage,
+      failedOperation: failedOperation ?? this.failedOperation,
       isRefreshing: isRefreshing ?? this.isRefreshing,
     );
   }
@@ -105,7 +118,10 @@ class ProductListState {
           hasMore == other.hasMore &&
           products.length == other.products.length &&
           errorMessage == other.errorMessage &&
-          paginationErrorMessage == other.paginationErrorMessage;
+          paginationErrorMessage == other.paginationErrorMessage &&
+          bannerErrorMessage == other.bannerErrorMessage &&
+          failedOperation == other.failedOperation &&
+          isRefreshing == other.isRefreshing;
 
   @override
   int get hashCode =>
@@ -116,5 +132,8 @@ class ProductListState {
       skip.hashCode ^
       limit.hashCode ^
       total.hashCode ^
-      hasMore.hashCode;
+      hasMore.hashCode ^
+      bannerErrorMessage.hashCode ^
+      failedOperation.hashCode ^
+      isRefreshing.hashCode;
 }
