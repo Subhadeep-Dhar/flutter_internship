@@ -237,7 +237,70 @@ ShopSphere implements a complete, responsive product details experience consumin
 
 ---
 
-## 9. Getting Started
+## 9. Cart & Checkout Architecture (Phase 5)
+
+ShopSphere implements a feature-first, offline-resilient Cart and Checkout architecture adhering to clean architecture principles:
+
+### 1. Domain Layer (`lib/features/cart/domain/`)
+* **Entities**:
+  * `CartItem`: Immutable entity encapsulating `productId`, `title`, unit `price`, `discountPercentage`, `thumbnail`, `stock`, and `quantity`. Computed getters provide `effectiveUnitPrice`, `lineTotal`, `originalLineTotal`, `totalSavings`, and `isAtStockLimit`.
+  * `Cart`: Immutable container of cart items calculating `totalItems`, `uniqueItemCount`, `subtotal`, `totalDiscount`, `grandTotal`, `isEmpty`, `containsProduct`, and `findByProductId`.
+  * `CheckoutResult`: Domain model capturing server-confirmed order creation (`id`, `total`, `discountedTotal`, `totalProducts`, `totalQuantity`, `userId`).
+* **Repository Contract (`CartRepository`)**:
+  * Pure Dart contract declaring `getCart()`, `addToCart(product, quantity)`, `updateQuantity(productId, quantity)`, `removeFromCart(productId)`, `clearCart()`, and `checkout(userId)`.
+* **Use Cases**:
+  * `GetCartUseCase`: Retrieves active cart.
+  * `AddToCartUseCase`: Adds product or increments quantity without duplicates; enforces stock limit validation.
+  * `UpdateCartItemQuantityUseCase`: Updates quantity, clamps to stock limits, or removes item when quantity reaches 0.
+  * `RemoveFromCartUseCase`: Removes individual product from cart.
+  * `ClearCartUseCase`: Clears all cart items with persistent synchronization.
+  * `CheckoutUseCase`: Submits order to DummyJSON `POST /carts/add` and clears local cart upon confirmed success.
+
+### 2. Data & Persistence Layer (`lib/features/cart/data/`)
+* **Local Persistence (`CartLocalDataSource`)**:
+  * Backed by `SharedPreferences` with storage key `shopsphere_active_cart_v1`.
+  * Serializes active cart as clean JSON; deserializes defensively with automatic recovery fallback on corrupted data to prevent startup crashes.
+  * Ensures cart contents survive app restarts and remain fully operable offline.
+* **Remote Data Source (`CartRemoteDataSource`)**:
+  * Consumes DummyJSON `POST /carts/add` via the centralized Dio client.
+  * Packages cart products with user ID and validates remote HTTP 200/201 responses.
+* **Repository Implementation (`CartRepositoryImpl`)**:
+  * Orchestrates local persistence and remote order submission.
+  * **Failure Isolation**: A failed remote checkout (network outage, server error) **preserves the local cart**; the cart is only wiped if the remote checkout succeeds.
+
+### 3. State Management (`lib/features/cart/presentation/controllers/`)
+* **Riverpod 3 Controller (`CartNotifier`)**:
+  * Managed via `NotifierProvider<CartNotifier, CartState>`.
+  * State (`CartState`) exposes explicit statuses: `initial`, `loading`, `ready`, `checkingOut`, `checkoutSuccess`, and `error`.
+  * Microtask-based initial load with `_hasInitialLoaded` guard preventing duplicate loads and race conditions.
+  * Reactive `cartItemCountProvider` drives the badge count across the app.
+
+### 4. UI & Responsive Design (`lib/features/cart/presentation/`)
+* **Cart Badge (`CartBadgeIconButton`)**:
+  * Present on AppBar in both `HomePage` (catalogue) and `ProductDetailPage`.
+  * Real-time badge pill showing current item count; tapped icon pushes `/cart`.
+* **Product Detail Add to Cart (`AddToCartSection`)**:
+  * Interactive quantity stepper respecting product inventory.
+  * Dynamically computes line total based on discounted price.
+  * "Add to Cart" button disabled with "Out of Stock" state when `product.isInStock == false`.
+  * Floating SnackBar confirmation with immediate "VIEW CART" action.
+* **Responsive Cart Page (`CartPage`)**:
+  * **Compact / Mobile** (`< 600 dp`): Vertical scrolling list of item cards followed by sticky order summary.
+  * **Medium / Tablet / Desktop** (`>= 600 dp`): Side-by-side dual-column layout with scrollable item list on the left and elevated order summary on the right.
+  * **Interactive Stepper (`CartItemCard`)**: Increment, decrement, and delete actions with stock limit warnings.
+  * **Clear Cart**: AppBar action prompting a confirmation dialog before discarding items.
+  * **Empty State (`AppEmptyView`)**: Clear illustration and "Explore Products" navigation button.
+
+### 5. Honest Checkout & DummyJSON Limitations
+* **Simulated Checkout**: DummyJSON is a demo mock REST API:
+  * It returns an echo of the cart payload but does not perform real-world financial transactions or persist server-side state.
+  * ShopSphere explicitly labels checkout as **"Place Order (Simulated)"**.
+  * No payment cards, credentials, or mock banking flows are collected.
+  * Successful checkout presents a clear `CheckoutSuccessDialog` displaying the simulated order reference ID, item count, and grand total.
+
+---
+
+## 10. Getting Started
 
 ### Prerequisites
 * Flutter SDK: `3.44.1` (channel `stable`)
@@ -270,19 +333,19 @@ flutter run
 
 ---
 
-## 10. Test Suite Status
+## 11. Test Suite Status
 
-Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier, product list notifier, product detail notifier, image gallery, reviews, responsive detail layouts, search debouncing, concurrency protection, and widget interactions:
+Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier, product list notifier, product detail notifier, cart notifier, cart persistence, responsive layouts, search debouncing, concurrency protection, and widget interactions:
 
 ```bash
 flutter test
 ```
-* Status: **155 / 155 tests passing**
+* Status: **208 / 208 tests passing**
 * Static Analysis: **0 issues found** across all files.
 
 ---
 
-## 11. Verified Test Credentials (DummyJSON)
+## 12. Verified Test Credentials (DummyJSON)
 
 The following credentials are provided by DummyJSON for manual testing:
 * **Username**: `emilys`
