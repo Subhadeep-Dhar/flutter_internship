@@ -17,9 +17,13 @@ import '../widgets/product_error_banner.dart';
 import '../widgets/product_grid_skeleton.dart';
 import '../widgets/product_search_bar.dart';
 import '../widgets/product_sort_bottom_sheet.dart';
+import 'product_detail_page.dart';
 import '../../../cart/presentation/widgets/cart_badge_icon_button.dart';
 
-/// Full-featured, responsive ShopSphere product catalogue screen.
+/// Full-featured, responsive ShopSphere product catalogue screen supporting:
+/// - Compact (< 600 dp): 2-column grid and bottom NavigationBar.
+/// - Medium (600–1024 dp): 3-4 column grid and NavigationRail.
+/// - Expanded (> 1024 dp): NavigationRail and master-detail side-by-side layout.
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -29,6 +33,7 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   late final ScrollController _scrollController;
+  int? _selectedProductId;
 
   @override
   void initState() {
@@ -69,13 +74,29 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final productState = ref.watch(productListNotifierProvider);
     final productNotifier = ref.read(productListNotifierProvider.notifier);
+    final cartCount = ref.watch(cartItemCountProvider);
 
     final width = MediaQuery.sizeOf(context).width;
+    final screenType = Breakpoints.fromWidth(width);
+    final isCompact = screenType == ScreenType.compact;
+    final isMedium = screenType == ScreenType.medium;
+    final isExpanded = screenType == ScreenType.expanded;
     final columnCount = Breakpoints.gridColumnCount(width);
+
+    // Keep selected product valid for expanded master-detail layout
+    if (isExpanded) {
+      if (productState.products.isEmpty) {
+        _selectedProductId = null;
+      } else if (_selectedProductId == null ||
+          !productState.products.any((p) => p.id == _selectedProductId)) {
+        _selectedProductId = productState.products.first.id;
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(AppSpacing.xs + 2),
@@ -94,11 +115,14 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Text(
-              'ShopSphere',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
+            Flexible(
+              child: Text(
+                'ShopSphere',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
           ],
@@ -159,108 +183,288 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(width: AppSpacing.xs),
         ],
       ),
+      bottomNavigationBar: isCompact
+          ? _buildBottomNavigationBar(cartCount)
+          : null,
       body: SafeArea(
-        child: Column(
-          children: [
-            AppSpacing.gapSm,
-
-            // Search Bar & Sort Action
-            ProductSearchBar(
-              initialQuery: productState.searchQuery,
-              activeSort: productState.sortOption,
-              onChanged: productNotifier.onSearchInput,
-              onSubmitted: productNotifier.submitSearch,
-              onClear: productNotifier.clearFilters,
-              onSortTap: () {
-                ProductSortBottomSheet.show(
-                  context: context,
-                  selectedOption: productState.sortOption,
-                  onSelect: productNotifier.setSortOption,
-                  onReset: () =>
-                      productNotifier.setSortOption(productState.sortOption),
-                );
-              },
-            ),
-            AppSpacing.gapSm,
-
-            // Horizontal Category Chips
-            if (productState.categories.isNotEmpty) ...[
-              CategoryChipsBar(
-                categories: productState.categories,
-                selectedCategory: productState.selectedCategory,
-                onSelectCategory: productNotifier.selectCategory,
-              ),
-              AppSpacing.gapSm,
-            ],
-
-            // Active Filters Banner (shown when search, category, or sort is applied)
-            if (productState.hasActiveFilters)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.xs,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.filter_list_rounded,
-                      size: 16.0,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.mutedSage,
-                    ),
-                    const SizedBox(width: 4.0),
-                    Expanded(
-                      child: Text(
-                        _buildFilterSummary(productState),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: productNotifier.clearFilters,
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      ),
-                      child: const Text(
-                        'Clear all',
-                        style: TextStyle(fontSize: 12.0),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Top-Level Error Banner (visible without scrolling for refresh / pagination failures)
-            if (productState.bannerErrorMessage != null) ...[
-              ProductErrorBanner(
-                message: productState.bannerErrorMessage!,
-                onRetry: productNotifier.retry,
-                onDismiss: productNotifier.dismissBannerError,
-                isRetrying:
-                    productState.isLoadingMore || productState.isRefreshing,
-              ),
-              AppSpacing.gapSm,
-            ],
-
-            // Main Catalogue Content Area
-            Expanded(
-              child: _buildCatalogueContent(
+        child: isCompact
+            ? _buildCatalogueColumn(
                 context: context,
-                state: productState,
-                notifier: productNotifier,
+                productState: productState,
+                productNotifier: productNotifier,
+                isDark: isDark,
+                theme: theme,
                 columnCount: columnCount,
+                isExpanded: false,
+              )
+            : isMedium
+            ? Row(
+                children: [
+                  _buildNavigationRail(cartCount),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(
+                    child: _buildCatalogueColumn(
+                      context: context,
+                      productState: productState,
+                      productNotifier: productNotifier,
+                      isDark: isDark,
+                      theme: theme,
+                      columnCount: columnCount,
+                      isExpanded: false,
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  _buildNavigationRail(cartCount),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(
+                    flex: 5,
+                    child: _buildCatalogueColumn(
+                      context: context,
+                      productState: productState,
+                      productNotifier: productNotifier,
+                      isDark: isDark,
+                      theme: theme,
+                      columnCount: 2,
+                      isExpanded: true,
+                    ),
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(flex: 6, child: _buildDetailPane(isDark)),
+                ],
               ),
-            ),
-          ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar(int cartCount) {
+    return NavigationBar(
+      selectedIndex: 0,
+      onDestinationSelected: (index) {
+        if (index == 1) {
+          context.push(AppRoutes.cart);
+        } else if (index == 2) {
+          context.push(AppRoutes.profile);
+        } else if (index == 0) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        }
+      },
+      destinations: [
+        const NavigationDestination(
+          icon: Icon(Icons.storefront_outlined),
+          selectedIcon: Icon(Icons.storefront_rounded),
+          label: 'Catalogue',
+        ),
+        NavigationDestination(
+          icon: cartCount > 0
+              ? Badge.count(
+                  count: cartCount,
+                  child: const Icon(Icons.shopping_bag_outlined),
+                )
+              : const Icon(Icons.shopping_bag_outlined),
+          selectedIcon: cartCount > 0
+              ? Badge.count(
+                  count: cartCount,
+                  child: const Icon(Icons.shopping_bag_rounded),
+                )
+              : const Icon(Icons.shopping_bag_rounded),
+          label: 'Cart',
+        ),
+        const NavigationDestination(
+          icon: Icon(Icons.person_outline_rounded),
+          selectedIcon: Icon(Icons.person_rounded),
+          label: 'Profile',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNavigationRail(int cartCount) {
+    return NavigationRail(
+      selectedIndex: 0,
+      onDestinationSelected: (index) {
+        if (index == 1) {
+          context.push(AppRoutes.cart);
+        } else if (index == 2) {
+          context.push(AppRoutes.profile);
+        } else if (index == 0) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        }
+      },
+      labelType: NavigationRailLabelType.all,
+      destinations: [
+        const NavigationRailDestination(
+          icon: Icon(Icons.storefront_outlined),
+          selectedIcon: Icon(Icons.storefront_rounded),
+          label: Text('Catalogue'),
+        ),
+        NavigationRailDestination(
+          icon: cartCount > 0
+              ? Badge.count(
+                  count: cartCount,
+                  child: const Icon(Icons.shopping_bag_outlined),
+                )
+              : const Icon(Icons.shopping_bag_outlined),
+          selectedIcon: cartCount > 0
+              ? Badge.count(
+                  count: cartCount,
+                  child: const Icon(Icons.shopping_bag_rounded),
+                )
+              : const Icon(Icons.shopping_bag_rounded),
+          label: const Text('Cart'),
+        ),
+        const NavigationRailDestination(
+          icon: Icon(Icons.person_outline_rounded),
+          selectedIcon: Icon(Icons.person_rounded),
+          label: Text('Profile'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailPane(bool isDark) {
+    if (_selectedProductId != null) {
+      return ProductDetailPage(
+        key: ValueKey(_selectedProductId),
+        productId: _selectedProductId!,
+        isEmbedded: true,
+      );
+    }
+    return Container(
+      color: isDark ? AppColors.darkBackground : AppColors.ivoryBackground,
+      child: const Center(
+        child: AppEmptyView(
+          icon: Icons.touch_app_outlined,
+          title: 'Select a Product',
+          message:
+              'Choose any product from the catalogue on the left to preview its full details, specifications, and customer reviews.',
         ),
       ),
+    );
+  }
+
+  Widget _buildCatalogueColumn({
+    required BuildContext context,
+    required ProductListState productState,
+    required dynamic productNotifier,
+    required bool isDark,
+    required ThemeData theme,
+    required int columnCount,
+    required bool isExpanded,
+  }) {
+    return Column(
+      children: [
+        AppSpacing.gapSm,
+
+        // Search Bar & Sort Action
+        ProductSearchBar(
+          initialQuery: productState.searchQuery,
+          activeSort: productState.sortOption,
+          onChanged: productNotifier.onSearchInput,
+          onSubmitted: productNotifier.submitSearch,
+          onClear: productNotifier.clearFilters,
+          onSortTap: () {
+            ProductSortBottomSheet.show(
+              context: context,
+              selectedOption: productState.sortOption,
+              onSelect: productNotifier.setSortOption,
+              onReset: () =>
+                  productNotifier.setSortOption(productState.sortOption),
+            );
+          },
+        ),
+        AppSpacing.gapSm,
+
+        // Horizontal Category Chips
+        if (productState.categories.isNotEmpty) ...[
+          CategoryChipsBar(
+            categories: productState.categories,
+            selectedCategory: productState.selectedCategory,
+            onSelectCategory: productNotifier.selectCategory,
+          ),
+          AppSpacing.gapSm,
+        ],
+
+        // Active Filters Banner (shown when search, category, or sort is applied)
+        if (productState.hasActiveFilters)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.xs,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.filter_list_rounded,
+                  size: 16.0,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.mutedSage,
+                ),
+                const SizedBox(width: 4.0),
+                Expanded(
+                  child: Text(
+                    _buildFilterSummary(productState),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                TextButton(
+                  onPressed: productNotifier.clearFilters,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  ),
+                  child: const Text(
+                    'Clear all',
+                    style: TextStyle(fontSize: 12.0),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Top-Level Error Banner (visible without scrolling for refresh / pagination failures)
+        if (productState.bannerErrorMessage != null) ...[
+          ProductErrorBanner(
+            message: productState.bannerErrorMessage!,
+            onRetry: productNotifier.retry,
+            onDismiss: productNotifier.dismissBannerError,
+            isRetrying: productState.isLoadingMore || productState.isRefreshing,
+          ),
+          AppSpacing.gapSm,
+        ],
+
+        // Main Catalogue Content Area
+        Expanded(
+          child: _buildCatalogueContent(
+            context: context,
+            state: productState,
+            notifier: productNotifier,
+            columnCount: columnCount,
+            isExpanded: isExpanded,
+          ),
+        ),
+      ],
     );
   }
 
@@ -269,6 +473,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     required ProductListState state,
     required dynamic notifier,
     required int columnCount,
+    required bool isExpanded,
   }) {
     // 1. Initial Loading State: Animated Skeletons
     if ((state.isLoading || state.isInitial) && state.products.isEmpty) {
@@ -313,7 +518,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: columnCount,
-                childAspectRatio: 0.68,
+                childAspectRatio: 0.55,
                 crossAxisSpacing: AppSpacing.md,
                 mainAxisSpacing: AppSpacing.md,
               ),
@@ -321,8 +526,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                 final product = state.products[index];
                 return ProductCard(
                   product: product,
+                  isSelected: isExpanded && product.id == _selectedProductId,
                   onTap: () {
-                    context.push('/product/${product.id}');
+                    if (isExpanded) {
+                      setState(() {
+                        _selectedProductId = product.id;
+                      });
+                    } else {
+                      context.push('/product/${product.id}');
+                    }
                   },
                 );
               }, childCount: state.products.length),

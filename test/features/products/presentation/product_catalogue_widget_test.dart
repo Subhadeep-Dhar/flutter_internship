@@ -11,6 +11,8 @@ import 'package:shopsphere/features/cart/presentation/controllers/cart_notifier.
 import 'package:shopsphere/features/cart/presentation/controllers/cart_state.dart';
 import 'package:shopsphere/features/products/domain/entities/category.dart';
 import 'package:shopsphere/features/products/domain/entities/product.dart';
+import 'package:shopsphere/features/products/presentation/controllers/product_detail_notifier.dart';
+import 'package:shopsphere/features/products/presentation/controllers/product_detail_state.dart';
 import 'package:shopsphere/features/products/presentation/controllers/product_list_notifier.dart';
 import 'package:shopsphere/features/products/presentation/controllers/product_list_state.dart';
 import 'package:shopsphere/features/products/presentation/pages/home_page.dart';
@@ -85,6 +87,17 @@ class FakeCartNotifier extends CartNotifier {
   Future<void> loadCart() async {}
 }
 
+class FakeProductDetailNotifier extends ProductDetailNotifier {
+  final ProductDetailState initialState;
+  FakeProductDetailNotifier(
+    super.productId, [
+    this.initialState = const ProductDetailState(),
+  ]);
+
+  @override
+  ProductDetailState build() => initialState;
+}
+
 void main() {
   const tProduct = Product(
     id: 101,
@@ -116,6 +129,16 @@ void main() {
         productListNotifierProvider.overrideWith(() => notifier),
         cartNotifierProvider.overrideWith(FakeCartNotifier.new),
         cartItemCountProvider.overrideWithValue(0),
+        productDetailNotifierProvider(101).overrideWith(
+          () => FakeProductDetailNotifier(
+            101,
+            const ProductDetailState(
+              status: ProductDetailStatus.loaded,
+              product: tProduct,
+              productId: 101,
+            ),
+          ),
+        ),
       ],
       child: MaterialApp(theme: AppTheme.lightTheme, home: const HomePage()),
     );
@@ -448,6 +471,16 @@ void main() {
             ),
             cartNotifierProvider.overrideWith(FakeCartNotifier.new),
             cartItemCountProvider.overrideWithValue(0),
+            productDetailNotifierProvider(101).overrideWith(
+              () => FakeProductDetailNotifier(
+                101,
+                const ProductDetailState(
+                  status: ProductDetailStatus.loaded,
+                  product: tProduct,
+                  productId: 101,
+                ),
+              ),
+            ),
           ],
           child: MaterialApp.router(
             theme: AppTheme.lightTheme,
@@ -463,6 +496,124 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Product Detail Screen #101'), findsOneWidget);
+    });
+
+    testWidgets(
+      'compact screen (< 600 dp) renders bottom NavigationBar with 3 destinations',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final loadedState = ProductListState(
+          status: ProductListStatus.loaded,
+          products: [tProduct],
+          categories: tCategories,
+          total: 1,
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(productState: loadedState),
+        );
+        await tester.pump();
+
+        expect(find.byType(NavigationBar), findsOneWidget);
+        expect(find.byType(NavigationRail), findsNothing);
+        expect(find.text('Catalogue'), findsOneWidget);
+        expect(find.text('Cart'), findsOneWidget);
+        expect(find.text('Profile'), findsAtLeastNWidgets(1));
+      },
+    );
+
+    testWidgets(
+      'medium screen (600 - 1024 dp) renders NavigationRail without bottom NavigationBar',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final loadedState = ProductListState(
+          status: ProductListStatus.loaded,
+          products: [tProduct],
+          categories: tCategories,
+          total: 1,
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(productState: loadedState),
+        );
+        await tester.pump();
+
+        expect(find.byType(NavigationRail), findsOneWidget);
+        expect(find.byType(NavigationBar), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'expanded screen (> 1024 dp) renders NavigationRail and master-detail side-by-side layout',
+      (tester) async {
+        tester.view.physicalSize = const Size(1200, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final loadedState = ProductListState(
+          status: ProductListStatus.loaded,
+          products: [tProduct],
+          categories: tCategories,
+          total: 1,
+        );
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(productState: loadedState),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(NavigationRail), findsOneWidget);
+        expect(find.byType(NavigationBar), findsNothing);
+        expect(find.text('ShopSphere'), findsOneWidget);
+        expect(find.text('Wireless Earbuds'), findsAtLeastNWidgets(1));
+      },
+    );
+
+    testWidgets('renders without RenderFlex overflow when textScaler is 1.3x', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final loadedState = ProductListState(
+        status: ProductListStatus.loaded,
+        products: [tProduct],
+        categories: tCategories,
+        total: 1,
+      );
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(
+            textScaler: TextScaler.linear(1.3),
+            size: Size(400, 800),
+          ),
+          child: createWidgetUnderTest(productState: loadedState),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Wireless Earbuds'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }

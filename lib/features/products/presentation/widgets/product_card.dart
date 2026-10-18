@@ -9,8 +9,14 @@ import '../../domain/entities/product.dart';
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onTap;
+  final bool isSelected;
 
-  const ProductCard({super.key, required this.product, this.onTap});
+  const ProductCard({
+    super.key,
+    required this.product,
+    this.onTap,
+    this.isSelected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +24,9 @@ class ProductCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final cardBg = isDark ? AppColors.darkSurface : AppColors.ivorySurface;
-    final borderColor = isDark ? AppColors.darkBorder : AppColors.ivoryBorder;
+    final borderColor = isSelected
+        ? (isDark ? AppColors.darkForestGreen : AppColors.forestGreen)
+        : (isDark ? AppColors.darkBorder : AppColors.ivoryBorder);
 
     return Semantics(
       label:
@@ -33,13 +41,27 @@ class ProductCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: cardBg,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              border: Border.all(color: borderColor, width: 1.0),
+              border: Border.all(
+                color: borderColor,
+                width: isSelected ? 2.5 : 1.0,
+              ),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-                  blurRadius: 8.0,
-                  offset: const Offset(0, 2),
-                ),
+                if (isSelected)
+                  BoxShadow(
+                    color:
+                        (isDark
+                                ? AppColors.darkForestGreen
+                                : AppColors.forestGreen)
+                            .withValues(alpha: 0.3),
+                    blurRadius: 10.0,
+                    offset: const Offset(0, 3),
+                  )
+                else
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                    blurRadius: 8.0,
+                    offset: const Offset(0, 2),
+                  ),
               ],
             ),
             child: Column(
@@ -49,7 +71,7 @@ class ProductCard extends StatelessWidget {
                 Stack(
                   children: [
                     AspectRatio(
-                      aspectRatio: 1.1,
+                      aspectRatio: 1.3,
                       child: ClipRRect(
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(AppSpacing.radiusMd - 1),
@@ -163,7 +185,7 @@ class ProductCard extends StatelessWidget {
 
                 // Product Details
                 Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(AppSpacing.sm + 2),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -193,7 +215,7 @@ class ProductCard extends StatelessWidget {
                           height: 1.25,
                         ),
                       ),
-                      AppSpacing.gapSm,
+                      const SizedBox(height: 6.0),
 
                       // Rating Row
                       Row(
@@ -210,26 +232,32 @@ class ProductCard extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(width: 4.0),
-                          if (product.isInStock && !product.isLowStock)
-                            Text(
-                              '• In stock',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: isDark
-                                    ? AppColors.darkForestGreen
-                                    : AppColors.forestGreen,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11.0,
+                          if (product.isInStock && !product.isLowStock) ...[
+                            const SizedBox(width: 4.0),
+                            Flexible(
+                              child: Text(
+                                '• In stock',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: isDark
+                                      ? AppColors.darkForestGreen
+                                      : AppColors.forestGreen,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11.0,
+                                ),
                               ),
                             ),
+                          ],
                         ],
                       ),
-                      AppSpacing.gapSm,
+                      const SizedBox(height: 6.0),
 
                       // Price Row
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6.0,
+                        runSpacing: 2.0,
                         children: [
                           Text(
                             '\$${product.effectivePrice.toStringAsFixed(2)}',
@@ -241,8 +269,7 @@ class ProductCard extends StatelessWidget {
                             ),
                           ),
                           if (product.discountPercentage != null &&
-                              product.discountPercentage! > 0) ...[
-                            const SizedBox(width: 6.0),
+                              product.discountPercentage! > 0)
                             Text(
                               '\$${product.price.toStringAsFixed(2)}',
                               style: theme.textTheme.bodySmall?.copyWith(
@@ -252,7 +279,6 @@ class ProductCard extends StatelessWidget {
                                     : AppColors.textTertiary,
                               ),
                             ),
-                          ],
                         ],
                       ),
                     ],
