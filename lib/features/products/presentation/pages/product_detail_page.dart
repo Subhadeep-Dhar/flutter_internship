@@ -21,14 +21,120 @@ import '../../../cart/presentation/widgets/cart_badge_icon_button.dart';
 /// images, summary, specs, warranty, policies, and customer reviews.
 class ProductDetailPage extends ConsumerWidget {
   final int productId;
+  final bool isEmbedded;
 
-  const ProductDetailPage({super.key, required this.productId});
+  const ProductDetailPage({
+    super.key,
+    required this.productId,
+    this.isEmbedded = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final state = ref.watch(productDetailNotifierProvider(productId));
+
+    final content = switch (state.status) {
+      _ when state.isInvalidId => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: AppEmptyView(
+            icon: Icons.error_outline_rounded,
+            title: 'Invalid Product',
+            message:
+                state.errorMessage ??
+                'The requested product identifier is invalid.',
+            actionLabel: 'Back to Catalogue',
+            onAction: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+          ),
+        ),
+      ),
+      _ when state.isNotFound => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: AppEmptyView(
+            icon: Icons.search_off_rounded,
+            title: 'Product Not Found',
+            message:
+                state.errorMessage ??
+                'The requested product does not exist or has been removed.',
+            actionLabel: 'Back to Catalogue',
+            onAction: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+          ),
+        ),
+      ),
+      _ when state.isLoading || state.isInitial => const Center(
+        child: AppLoadingIndicator(
+          size: 32.0,
+          message: 'Loading product details...',
+        ),
+      ),
+      _ when state.isError => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: AppErrorView(
+            title: 'Unable to Load Product',
+            message:
+                state.errorMessage ??
+                'Could not retrieve product information. Please verify your connection and try again.',
+            retryLabel: 'Retry',
+            onRetry: () => ref
+                .read(productDetailNotifierProvider(productId).notifier)
+                .retry(),
+          ),
+        ),
+      ),
+      _ when state.isLoaded && state.product != null => LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final isWide = width >= Breakpoints.mediumMinWidth;
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200.0),
+              child: isWide
+                  ? _buildWideLayout(context, state.product!)
+                  : _buildCompactLayout(context, state.product!),
+            ),
+          );
+        },
+      ),
+      _ => Center(
+        child: AppEmptyView(
+          icon: Icons.search_off_rounded,
+          title: 'Product Not Found',
+          message: 'The requested product is not available.',
+          actionLabel: 'Back to Catalogue',
+          onAction: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
+      ),
+    };
+
+    if (isEmbedded) {
+      return Container(
+        color: isDark ? AppColors.darkBackground : AppColors.ivoryBackground,
+        child: content,
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark
@@ -49,69 +155,7 @@ class ProductDetailPage extends ConsumerWidget {
         ),
         actions: const [CartBadgeIconButton()],
       ),
-      body: SafeArea(
-        child: switch (state.status) {
-          _ when state.isInvalidId => Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: AppEmptyView(
-                icon: Icons.error_outline_rounded,
-                title: 'Invalid Product',
-                message:
-                    state.errorMessage ??
-                    'The requested product identifier is invalid.',
-                actionLabel: 'Back to Catalogue',
-                onAction: () => context.go('/home'),
-              ),
-            ),
-          ),
-          _ when state.isLoading || state.isInitial => const Center(
-            child: AppLoadingIndicator(
-              size: 32.0,
-              message: 'Loading product details...',
-            ),
-          ),
-          _ when state.isError => Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: AppErrorView(
-                title: 'Unable to Load Product',
-                message:
-                    state.errorMessage ??
-                    'Could not retrieve product information. Please verify your connection and try again.',
-                retryLabel: 'Retry',
-                onRetry: () => ref
-                    .read(productDetailNotifierProvider(productId).notifier)
-                    .retry(),
-              ),
-            ),
-          ),
-          _ when state.isLoaded && state.product != null => LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final isWide = width >= Breakpoints.mediumMinWidth;
-
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200.0),
-                  child: isWide
-                      ? _buildWideLayout(context, state.product!)
-                      : _buildCompactLayout(context, state.product!),
-                ),
-              );
-            },
-          ),
-          _ => Center(
-            child: AppEmptyView(
-              icon: Icons.search_off_rounded,
-              title: 'Product Not Found',
-              message: 'The requested product is not available.',
-              actionLabel: 'Back to Catalogue',
-              onAction: () => context.go('/home'),
-            ),
-          ),
-        },
-      ),
+      body: SafeArea(child: content),
     );
   }
 

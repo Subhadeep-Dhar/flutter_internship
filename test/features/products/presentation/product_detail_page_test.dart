@@ -188,6 +188,33 @@ void main() {
     });
 
     testWidgets(
+      'renders Product Not Found view with Back to Catalogue action when status is notFound',
+      (tester) async {
+        await tester.pumpWidget(
+          createWidgetUnderTest(
+            productId: 9999,
+            detailState: const ProductDetailState(
+              status: ProductDetailStatus.notFound,
+              errorMessage:
+                  'The requested product does not exist or has been removed.',
+              productId: 9999,
+            ),
+          ),
+        );
+
+        expect(find.byType(AppEmptyView), findsOneWidget);
+        expect(find.text('Product Not Found'), findsOneWidget);
+        expect(
+          find.text(
+            'The requested product does not exist or has been removed.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Back to Catalogue'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
       'renders product details: title, brand, category, rating, price, discount, stock and specs',
       (tester) async {
         await tester.pumpWidget(

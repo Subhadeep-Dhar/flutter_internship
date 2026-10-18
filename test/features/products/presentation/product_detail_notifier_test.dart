@@ -114,6 +114,38 @@ void main() {
     );
 
     test(
+      'loadProduct emits notFound with failure message when NotFoundFailure occurs (404)',
+      () async {
+        when(() => mockGetProductByIdUseCase(42)).thenAnswer(
+          (_) async => const Result.error(
+            NotFoundFailure(message: 'Product with ID 42 was not found.'),
+          ),
+        );
+
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        final subscription = container.listen(
+          productDetailNotifierProvider(42),
+          (_, _) {},
+        );
+        addTearDown(subscription.close);
+
+        final notifier = container.read(
+          productDetailNotifierProvider(42).notifier,
+        );
+        await notifier.loadProduct();
+
+        final state = container.read(productDetailNotifierProvider(42));
+        expect(state.status, ProductDetailStatus.notFound);
+        expect(state.isNotFound, isTrue);
+        expect(state.isError, isFalse);
+        expect(state.errorMessage, 'Product with ID 42 was not found.');
+        expect(state.product, isNull);
+      },
+    );
+
+    test(
       'retry re-invokes loadProduct and recovers to loaded on success',
       () async {
         when(() => mockGetProductByIdUseCase(42)).thenAnswer(

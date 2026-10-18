@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart';
+import '../../../../core/error/failures.dart';
 import '../../domain/usecases/get_product_by_id_usecase.dart';
 import 'product_detail_state.dart';
 
@@ -78,10 +79,17 @@ class ProductDetailNotifier extends Notifier<ProductDetailState> {
       },
       error: (failure) {
         if (!ref.mounted) return;
-        state = state.copyWith(
-          status: ProductDetailStatus.error,
-          errorMessage: () => failure.message,
-        );
+        if (failure is NotFoundFailure) {
+          state = state.copyWith(
+            status: ProductDetailStatus.notFound,
+            errorMessage: () => failure.message,
+          );
+        } else {
+          state = state.copyWith(
+            status: ProductDetailStatus.error,
+            errorMessage: () => failure.message,
+          );
+        }
       },
     );
   }

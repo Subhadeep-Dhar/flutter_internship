@@ -1,7 +1,14 @@
 import '../../domain/entities/product.dart';
 
 /// Status states for the product details screen.
-enum ProductDetailStatus { initial, loading, loaded, error, invalidId }
+enum ProductDetailStatus {
+  initial,
+  loading,
+  loaded,
+  notFound,
+  error,
+  invalidId,
+}
 
 /// Immutable state model representing a single product's detail view.
 class ProductDetailState {
@@ -24,6 +31,7 @@ class ProductDetailState {
   bool get isInitial => status == ProductDetailStatus.initial;
   bool get isLoading => status == ProductDetailStatus.loading;
   bool get isLoaded => status == ProductDetailStatus.loaded;
+  bool get isNotFound => status == ProductDetailStatus.notFound;
   bool get isError => status == ProductDetailStatus.error;
   bool get isInvalidId => status == ProductDetailStatus.invalidId;
 
