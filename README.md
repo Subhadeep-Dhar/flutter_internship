@@ -1,322 +1,214 @@
 # ShopSphere
 
-A production-quality Flutter e-commerce catalogue application consuming the [DummyJSON](https://dummyjson.com) REST API, built for the **Prosessed Flutter Developer Intern Technical Assignment**.
+A production-quality Flutter e-commerce application consuming the [DummyJSON](https://dummyjson.com) REST API, engineered for the **Prosessed Flutter Developer Intern Technical Assignment**.
 
 ---
 
-## 1. Project Overview
+## 1. Title, Overview & Links
 
-**ShopSphere** is a lightweight, responsive e-commerce application designed with clean architecture, strict separation of concerns, and an intentional visual identity. It provides product discovery, category filtering, search, detailed product specifications, local cart persistence, simulated checkout, and session profile management.
+**ShopSphere** is a lightweight, responsive e-commerce mobile application built with strict **Clean Architecture**, **Riverpod 3** state management, and an earthy, premium Material 3 design system. It delivers end-to-end user journeys including secure token-based authentication, paginated catalogue browsing with search and category filters, rich product detail previews with customer reviews, real-time reactive cart capacity and stock constraints, offline cart persistence, and simulated checkout.
 
-* **Repository**: [Subhadeep-Dhar/flutter_internship](https://github.com/Subhadeep-Dhar/flutter_internship)
+* **Repository**: [https://github.com/Subhadeep-Dhar/flutter_internship](https://github.com/Subhadeep-Dhar/flutter_internship)
 * **SDK Environment**: Flutter **3.44.1** (channel `stable`) • Dart SDK **3.12.1**
 * **Target Platforms**: Android (minSdk 26+), iOS, Web, Desktop
+* **Release APK**: [GitHub Releases](https://github.com/Subhadeep-Dhar/flutter_internship/releases) *(Generate locally via `flutter build apk --release`)*
+* **Video Walkthrough**: *(Demo recording covering Auth, Catalogue, Details, Cart, Checkout, and Offline Error Scenarios)*
 
 ---
 
-## 2. Architecture & Design Principles
+## 2. Screenshots & Screen Recordings
 
-The application strictly follows **Feature-First Clean Architecture**:
+### Mobile Phone Layouts (< 600 dp)
+| Splash & Authentication | Product Catalogue & Search | Product Details & Reviews | Cart & Simulated Checkout |
+| :---: | :---: | :---: | :---: |
+| ![Splash / Login](docs/screenshots/phone_auth.png) | ![Product Catalogue](docs/screenshots/phone_catalogue.png) | ![Product Details](docs/screenshots/phone_details.png) | ![Cart & Checkout](docs/screenshots/phone_cart.png) |
 
+### Tablet & Landscape Layouts (>= 600 dp)
+| Medium Screen (600–1024 dp) — NavigationRail & Grid | Expanded (> 1024 dp) — Master-Detail Split Layout |
+| :---: | :---: |
+| ![Tablet Medium](docs/screenshots/tablet_medium.png) | ![Tablet Master-Detail](docs/screenshots/tablet_expanded.png) |
+
+---
+
+## 3. Feature Checklist (Must-Have & Bonus) + Incomplete Items
+
+### Must-Have Requirements Checklist
+| Area | Requirement | Status | Evidence / Notes |
+| :--- | :--- | :---: | :--- |
+| **Auth** | Splash session restoration or rejection | PASS | `SplashPage`, `RestoreSessionUseCase`, `AuthNotifier` |
+| **Auth** | Form validation (empty check, min lengths) | PASS | `LoginPage`, `ValidationFailure`, unit/widget tests |
+| **Auth** | Password visibility toggle & loading indicator | PASS | `LoginPage`, `AppLoadingIndicator` |
+| **Auth** | Secure token storage (Keychain / EncryptedSharedPreferences) | PASS | `AuthLocalDataSource` via `flutter_secure_storage` |
+| **Auth** | `/auth/login`, `/auth/me`, `/auth/refresh` API integration | PASS | `AuthRemoteDataSource`, `AuthInterceptor` |
+| **Auth** | User profile view (avatar, name, email, phone) | PASS | `ProfilePage` with pull-to-refresh session check |
+| **Auth** | Logout clearing tokens & state | PASS | `LogoutUseCase`, `AuthNotifier.logout()` |
+| **Auth** | HTTP 401 & 403 session expiration handling | PASS | `AuthInterceptor`, `AuthSessionExpired` state |
+| **Catalogue** | Product cards (thumbnail, title, price, discount, rating) | PASS | `ProductCard`, WCAG-compliant semantics & badges |
+| **Catalogue** | Pagination (`limit=20`, `skip=N`, loading indicator, no duplicates) | PASS | `ProductListNotifier.loadMore()`, pagination lock |
+| **Catalogue** | Pull-to-refresh | PASS | `RefreshIndicator` in `HomePage` |
+| **Catalogue** | API category filtering with "All" option | PASS | `CategoryChipsBar`, `GetProductsByCategoryUseCase` |
+| **Catalogue** | Search endpoint with ~400ms debounce & stale-guard | PASS | `Debouncer(400ms)`, `_activeRequestId` sequence guard |
+| **Catalogue** | 4 sort options (price asc/desc, rating, title/none) | PASS | `ProductSortBottomSheet`, `ProductSortOption` |
+| **Catalogue** | Shimmer/skeleton loading UI on initial load | PASS | `ProductGridSkeleton` with staggered pulses |
+| **Catalogue** | Distinct empty search state vs network error state | PASS | `AppEmptyView` vs `AppErrorView` with Retry |
+| **Details** | Image carousel with indicator & thumbnail strip | PASS | `ProductImageGallery` with `PageView` |
+| **Details** | Full metadata, stock, description & customer reviews | PASS | `ProductInfoSection`, `ProductSpecificationsCard`, `ProductReviewsList` |
+| **Details** | Add-to-cart with quantity stepper & out-of-stock guard | PASS | `AddToCartSection`, real-time inventory clamping |
+| **Details** | Recoverable "Product not found" state (e.g. `/product/9999`) | PASS | `ProductDetailStatus.notFound`, `AppEmptyView` with "Back to Catalogue" |
+| **Details** | Reactive cart badge updates | PASS | `CartBadgeIconButton` driven by `cartItemCountProvider` |
+| **Cart** | Add, remove, and quantity update operations | PASS | `AddToCartUseCase`, `UpdateCartItemQuantityUseCase`, `RemoveFromCartUseCase` |
+| **Cart** | Subtotal, discount savings, and grand total calculations | PASS | `Cart` domain entity pure getters |
+| **Cart** | Offline local persistence surviving restarts | PASS | `CartLocalDataSource` via `SharedPreferences` |
+| **Cart** | Real-time badge counter synchronization | PASS | `cartItemCountProvider` across all screens |
+| **Checkout**| Remote checkout via `POST /carts/add` | PASS | `CheckoutUseCase`, `CartRemoteDataSource` |
+| **Checkout**| Cart cleared only on confirmed remote success | PASS | `CartRepositoryImpl.checkout()`, local cart preserved on error |
+| **Checkout**| Honest simulation labeling ("Place Order (Simulated)") | PASS | `CartPage`, `CheckoutSuccessDialog` |
+| **Network** | Centralized Dio client with timeouts and sanitized logging | PASS | `DioClientProvider`, `SanitizedLoggerInterceptor` |
+| **Network** | Typed Domain Failures & Error Mapping | PASS | `Failure` hierarchy, `ErrorHandler.handle()` |
+| **Layout**  | Compact (< 600 dp): 2-column grid, bottom `NavigationBar` | PASS | `HomePage`, `Breakpoints.fromWidth()` |
+| **Layout**  | Medium (600–1024 dp): 3–4 column grid, `NavigationRail` | PASS | `HomePage`, adaptive `NavigationRail` |
+| **Layout**  | Expanded (> 1024 dp): Master-detail split layout | PASS | `HomePage` with embedded `ProductDetailPage(isEmbedded: true)` |
+| **A11y**    | 48dp min tap targets, 1.3x text scaling, contrast | PASS | `AppSpacing.minTapTarget`, verified 0 RenderFlex overflows |
+
+### Bonus Features Status
+* **[Bonus] Tablet / Desktop Adaptive Master-Detail**: Implemented via `HomePage` split pane (`flex: 5` master catalogue, `flex: 6` embedded detail view) for screens `> 1024 dp`.
+* **[Bonus] Shimmer Loading UI**: Implemented via `ProductGridSkeleton` with animated gradient pulse.
+* **[Bonus] Reactive Stock & Capacity Constraints**: Enforced 99-unit cart capacity limit with real-time UI disabling and explanatory inline banners.
+* **[Bonus] Hero Animations**: Intentionally omitted to protect master-detail layout stability (co-presence of master catalogue cards and detail pane creates duplicate Hero tag collisions).
+
+### Honest List of Incomplete / Demo Limitations
+1. **Mock Remote Backend**: DummyJSON is a static mock API; orders submitted via `POST /carts/add` return a simulated response without server-side persistence.
+2. **Simulated Payment**: No real credit card or banking flow is present; checkout is clearly marked as simulated.
+
+---
+
+## 4. Tech Stack & Key Packages
+
+| Package | Version | Justification |
+| :--- | :---: | :--- |
+| **`flutter_riverpod`** | `^3.4.3` | Unified, compile-time safe state management and dependency injection without secondary service locators (`get_it`). |
+| **`dio`** | `^5.9.2` | Powerful HTTP client providing connection/receive timeouts, interceptors for single-flight token refresh, and sanitized debug logging. |
+| **`go_router`** | `^17.1.0` | Declarative, URL-driven routing engine supporting reactive authentication redirects and deep linking. |
+| **`flutter_secure_storage`** | `^10.0.0` | Hardware-backed, encrypted key-value storage (Android KeyStore / iOS Keychain) for sensitive access/refresh tokens. |
+| **`shared_preferences`** | `^2.5.4` | Lightweight, reliable asynchronous persistence for active cart state and offline recovery. |
+| **`cached_network_image`** | `^3.4.1` | Asynchronous image loading with in-memory/disk caching, progress indicators, and fallback error widgets. |
+| **`mocktail`** | `^1.0.4` | Pure Dart, null-safe mocking library for repository, data source, and use-case unit/widget tests. |
+
+---
+
+## 5. Architecture Diagram, Folder Structure & Data Flow
+
+### Architecture Layers Diagram
+```text
+┌────────────────────────────────────────────────────────┐
+│                   PRESENTATION LAYER                   │
+│   Widgets • Pages • Riverpod Controllers • AppRouter  │
+└───────────────────────────┬────────────────────────────┘
+                            │ depends on (invokes)
+┌───────────────────────────▼────────────────────────────┐
+│                      DOMAIN LAYER                      │
+│   Entities • Value Objects • Repository Interfaces     │
+│       Use Cases (Interactors) • Result<T> Monad        │
+│                (Pure Dart - Zero Flutter)              │
+└───────────────────────────▲────────────────────────────┘
+                            │ implements
+┌───────────────────────────┴────────────────────────────┐
+│                       DATA LAYER                       │
+│    Data Sources (Remote/Local) • Data Models (DTOs)    │
+│       Repository Implementations • Error Mappers       │
+└────────────────────────────────────────────────────────┘
+```
+
+### Folder Structure
 ```text
 lib/
 ├── core/
 │   ├── di/               # Riverpod infrastructure providers
-│   ├── error/            # Pure Dart Failures, Exceptions, and ErrorHandler
-│   ├── network/          # Dio client, sanitized logger, auth interceptor, endpoints
-│   ├── theme/            # Centralized Material 3 ThemeData and design tokens
-│   ├── utils/            # Responsive breakpoints, debouncer, formatting
-│   └── widgets/          # Shared reusable UI: AppErrorView, AppEmptyView, AppLoadingIndicator
+│   ├── error/            # Failures, Exceptions, ErrorHandler, Result monad
+│   ├── network/          # Dio client, AuthInterceptor, sanitized logger
+│   ├── theme/            # Material 3 colors, typography, spacing tokens
+│   ├── utils/            # Breakpoints, Debouncer, currency formatters
+│   └── widgets/          # Shared AppErrorView, AppEmptyView, AppLoadingIndicator
 ├── features/
 │   ├── auth/             # Authentication & session verification
-│   │   ├── data/         # Models, data sources, repository implementations
-│   │   ├── domain/       # Pure Dart entities, repository contracts, use cases
-│   │   └── presentation/ # Riverpod controllers, pages, widgets
-│   ├── products/         # Catalog browsing, search, category filtering, product details
-│   ├── cart/             # Local cart management, price calculations, checkout
-│   └── profile/          # User profile view and session termination
-├── routing/              # GoRouter route declarations and provider
+│   │   ├── data/         # AuthRemoteDataSource, AuthLocalDataSource, AuthRepositoryImpl
+│   │   ├── domain/       # User, AuthTokens, AuthRepository, LoginUseCase, etc.
+│   │   └── presentation/ # AuthNotifier, LoginPage, SplashPage
+│   ├── products/         # Catalogue browsing, search, details
+│   │   ├── data/         # ProductRemoteDataSource, ProductRepositoryImpl, Models
+│   │   ├── domain/       # Product, Category, ProductRepository, UseCases
+│   │   └── presentation/ # ProductListNotifier, ProductDetailNotifier, HomePage, ProductDetailPage
+│   ├── cart/             # Cart persistence, capacity rules, checkout
+│   │   ├── data/         # CartLocalDataSource, CartRemoteDataSource, CartRepositoryImpl
+│   │   ├── domain/       # Cart, CartItem, CheckoutResult, CartRepository, UseCases
+│   │   └── presentation/ # CartNotifier, CartPage, AddToCartSection, CartBadgeIconButton
+│   └── profile/          # Profile view, pull-to-refresh session verification, logout
+├── routing/              # GoRouter route declarations and auth redirect listenable
 ├── app.dart              # ShopSphereApp root consumer widget
 └── main.dart             # Application bootstrap & asynchronous dependency overrides
 ```
 
-### Key Architectural Constraints
-1. **Pure Dart Domain**: Domain entities, repository interfaces, and use cases do not import Flutter, Dio, or infrastructure libraries.
-2. **Dependency Inversion**: Presentation widgets interact only with use cases or state notifiers; data layers implement domain interfaces.
-3. **Single State & DI Framework**: Riverpod is used exclusively for both state management and dependency injection, eliminating the need for `get_it` or secondary service locators.
+### UI → API → UI Data Flow
+```text
+[User Action: Tap "Add to Cart"]
+       │
+       ▼
+[Presentation: AddToCartSection / CartNotifier.addItem()]
+       │
+       ▼
+[Domain: AddToCartUseCase] ──(Validates stock & cart capacity: 99 max)──► [Validation Failure?] ──► [Inline Warning]
+       │
+       ▼ (if valid)
+[Data: CartRepositoryImpl]
+       ├──► [CartLocalDataSource] ──(Persist to SharedPreferences)
+       └──► Returns Result.success(cart)
+       │
+       ▼
+[Presentation: CartNotifier updates CartState(cart: newCart)]
+       ├──► UI re-renders updated quantity & price totals
+       └──► cartItemCountProvider automatically invalidates ──► CartBadgeIconButton updates badge count!
+```
 
 ---
 
-## 3. State Management & Justification
+## 6. State Management Strategy & Justification
 
-**Chosen Solution**: `flutter_riverpod` (v3.4.3)
+ShopSphere utilizes **Riverpod 3** (`flutter_riverpod`) exclusively across the entire code base:
 
 * **Why Riverpod**:
   1. **Compile-time Safety**: Eliminates runtime `ProviderNotFoundException` issues by relying on top-level provider declarations.
   2. **Unified State & DI**: Acts as both a reactive state manager and a declarative dependency injection container, removing the architectural overhead of combining BLoC with `get_it`.
   3. **Testability**: Riverpod enables straightforward overrides in unit and widget tests using `ProviderContainer` and `ProviderScope(overrides: [...])` without complex mocking harnesses.
 * **Trade-offs**:
-  * Riverpod requires wrapping widgets in `ConsumerWidget` or reading via `WidgetRef`, introducing a slight learning curve compared to standard inherited widgets. Code generation can also add build latency, so plain provider declarations were selected for transparency and immediate testability.
+  * Riverpod requires wrapping widgets in `ConsumerWidget` or reading via `WidgetRef`, introducing a slight learning curve compared to standard inherited widgets. Code generation was avoided in favour of explicit class notifiers for complete transparency and rapid test execution.
 
 ---
 
-## 4. Visual Identity & Design System
+## 7. Error Mapping & Recovery
 
-ShopSphere uses an earthy, premium design system configured with Material 3:
-* **Backgrounds & Surfaces**: Warm Ivory (`#FAF7F2` background, `#FFFFFF` surfaces, `#F3EFEA` cards)
-* **Primary Brand**: Forest Green (`#1E4633`) with subtle tonal containers
-* **Secondary Accents**: Muted Sage (`#586B5D`)
-* **Typography**: Near-Black (`#1A1D1A`) with distinct weights across Display, Headline, Title, and Body
-* **Promotional Highlights**: Restrained Sale Orange (`#D45B28`)
-* **Accessibility**: Minimum **48dp** interactive tap targets enforced across all button and input themes.
-* **Responsive Breakpoints**:
-  * **Compact** (`< 600 dp`): 2-column product grid, bottom navigation bar
-  * **Medium** (`600–1024 dp`): 3–4 column product grid, navigation rail
-  * **Expanded** (`> 1024 dp`): Master-detail split view
+`ErrorHandler` systematically translates all transport, protocol, and format exceptions into strongly typed domain failures:
 
----
-
-## 5. Network & Security Engineering
-
-* **Base URL**: `https://dummyjson.com`
-* **Timeouts**: 15 seconds connect, receive, and send timeouts.
-* **Sanitized Debug Logging**: `SanitizedLoggerInterceptor` automatically strips passwords, access tokens, refresh tokens, and authorization headers from debug console output to prevent credential leakage.
-* **Auth Extension Point**: `AuthInterceptor` injects `Bearer` tokens via an `AuthTokenProvider` contract, establishing a clean path for session injection and automatic token refresh.
-* **Single-Flight Token Refresh**:
-  * Concurrent 401 responses share a single synchronized in-flight refresh request (`_performSingleFlightRefresh`).
-  * Avoids duplicate refresh calls when multiple requests fail with 401 simultaneously.
-  * Retries the original request at most once (`x-shopsphere-retry` header guard).
-  * Clears session and triggers `onAuthenticationExpired` on unrecoverable 401/403 refresh failure.
-  * Excludes public authentication endpoints (`/auth/login`, `/auth/refresh`) to prevent recursion loops.
-* **Error Mapping**: `ErrorHandler` systematically translates low-level `DioException`, `SocketException`, and HTTP 4xx/5xx status codes into strongly typed domain `Failure` abstractions.
+| Failure Type | Source / Status | User-Facing Message | Recovery Mechanism |
+| :--- | :--- | :--- | :--- |
+| **`NetworkFailure`** | `SocketException` / Connection Error | *"No internet connection. Please check your network and retry."* | Inline `Retry` button, persistent top-level error banner for refresh/pagination |
+| **`TimeoutFailure`** | Connection / Receive Timeout | *"The server took too long to respond. Please try again."* | `Retry` action re-triggers original request |
+| **`UnauthorizedFailure`** | HTTP 401 / 403 / Refresh failure | *"Session expired or invalid credentials. Please sign in again."* | Single-flight refresh attempt; if failed, clears session & redirects to `/login` |
+| **`NotFoundFailure`** | HTTP 404 (e.g. `/products/9999`) | *"The requested item was not found."* | Dedicated `Product Not Found` screen with *"Back to Catalogue"* navigation |
+| **`ServerFailure`** | HTTP 500..599 | *"Server error (5xx). Please try again shortly."* | Non-destructive error state with `Retry` button |
+| **`SerializationFailure`** | FormatException / schema mismatch | *"Failed to parse response from server."* | Safe fallback defaults prevent app crashing |
+| **`ValidationFailure`** | Domain constraint violation | Contextual validation message (e.g. *"Cart is full."*) | UI disables submit action and displays inline banner |
 
 ---
 
-## 6. Authentication Architecture (Phase 2)
-
-ShopSphere implements an end-to-end, testable, and secure authentication flow:
-
-### 1. Domain Layer (`lib/features/auth/domain/`)
-* **Entities**:
-  * `User`: Strongly typed, null-safe entity representing the authenticated customer profile (`id`, `username`, `email`, `firstName`, `lastName`, `gender`, `image`, `phone`).
-  * `AuthTokens`: Immutable access and refresh token container.
-* **Repository Interface**: `AuthRepository` pure Dart contract defining `login()`, `getCurrentUser()`, `restoreSession()`, `logout()`, `refreshTokens()`, and `hasStoredTokens()`.
-* **Use Cases**: Single-responsibility domain operations:
-  * `LoginUseCase`
-  * `RestoreSessionUseCase`
-  * `GetCurrentUserUseCase`
-  * `LogoutUseCase`
-* **Result Monad**: Sealed `Result<T>` (`Success<T>`, `Error<T>`) returning explicit typed failures rather than throwing or swallowing errors.
-
-### 2. Data Layer (`lib/features/auth/data/`)
-* **Data Sources**:
-  * `AuthRemoteDataSource`: Consumes DummyJSON endpoints (`POST /auth/login`, `GET /auth/me`, `POST /auth/refresh`).
-  * `AuthLocalDataSource`: Backed by `flutter_secure_storage` for hardware-backed token encryption. **Passwords are never persisted.**
-* **Models**: `UserModel` and `AuthTokensModel` with defensive, null-safe JSON parsing handling optional API properties safely.
-* **Repository Implementation**: `AuthRepositoryImpl` maps DummyJSON HTTP 400 responses to a clean, user-facing failure (`"Invalid username or password."`) and clears stored tokens when sessions expire.
-
-### 3. State Management & Navigation
-* **Riverpod 3 Controller**: `AuthNotifier` exposes explicit `AuthState` transitions:
-  * `AuthInitial`: App initialization.
-  * `AuthLoading`: Network operation in flight.
-  * `AuthAuthenticated(user)`: Verified customer session.
-  * `AuthUnauthenticated([message])`: Logged out or login failed with friendly inline error.
-  * `AuthSessionExpired`: Session invalidated; prompts user to log in again.
-  * `AuthSessionCheckFailed(message)`: Startup network failure; provides retry button without falsely invalidating stored tokens.
-* **GoRouter Integration**: `_AuthRouterListenable` notifies `GoRouter` upon state changes. Top-level route redirects guard `/login`, `/splash`, `/home`, and `/profile` to ensure users cannot navigate to unauthorized screens.
-* **Session Restoration**: On app launch, `SplashPage` verifies the active session against `GET /auth/me`. If connectivity fails, it presents an honest retry screen rather than blindly trusting token presence.
-
----
-
-## 7. Product Catalogue Architecture (Phase 3)
-
-ShopSphere implements a performant, responsive product catalogue with client-side debouncing, server-side and client-side sorting, category filtering, and safe infinite scroll pagination:
-
-### 1. Domain Layer (`lib/features/products/domain/`)
-* **Entities**:
-  * `Product`: Strongly typed, null-safe domain entity (`id`, `title`, `description`, `category`, `price`, `discountPercentage`, `rating`, `stock`, `tags`, `brand`, `thumbnail`, `images`, `availabilityStatus`) with computed getters for `effectivePrice`, `stockStatusLabel`, `isInStock`, and `isLowStock`.
-  * `Category`: Category entity (`slug`, `name`, `url`) with a static synthetic `Category.all` chip.
-  * `PaginatedProducts`: Container holding a slice of products, `total`, `skip`, `limit`, and `hasMore` boundary helper.
-  * `ProductSortOption`: Enum for sorting criteria: `none` (Featured), `priceAsc` (Price: Low to High), `priceDesc` (Price: High to Low), and `ratingDesc` (Highest Rated).
-* **Repository Interface**: `ProductRepository` pure Dart contract.
-* **Use Cases**:
-  * `GetProductsUseCase`: Paginated list of products with optional sorting.
-  * `GetCategoriesUseCase`: Available catalogue categories.
-  * `SearchProductsUseCase`: Debounced query search with pagination and sorting.
-  * `GetProductsByCategoryUseCase`: Filtered products by category slug with pagination and sorting.
-  * `GetProductByIdUseCase`: Single product detail lookup.
-
-### 2. Data Layer (`lib/features/products/data/`)
-* **Remote Data Source**: `ProductRemoteDataSource` consuming:
-  * `GET /products?limit=20&skip=0&sortBy={sortBy}&order={order}`
-  * `GET /products/search?q={query}&limit=20&skip=0&sortBy={sortBy}&order={order}`
-  * `GET /products/category/{category}?limit=20&skip=0&sortBy={sortBy}&order={order}`
-  * `GET /products/categories` (parsing both object and raw string list payloads defensively)
-  * `GET /products/{id}`
-* **Models**: `ProductModel`, `CategoryModel`, and `ProductPageResponseModel` with defensive null-safety and fallback handling.
-* **Repository Implementation**: `ProductRepositoryImpl` translating network/dio exceptions through `ErrorHandler` to typed `Failure` results.
-
-### 3. State Management & Concurrency Protection
-* **Riverpod 3 Controller**: `ProductListNotifier` manages `ProductListState`:
-  * **Debounced Search**: Integrates `Debouncer(delay: 400ms)` so user typing never fires duplicate or excessive API requests.
-  * **Stale-Query Protection**: Monotonic sequence token (`_activeRequestId`) invalidates responses from slower out-of-order search requests.
-  * **Safe Infinite Pagination**: Concurrency lock prevents duplicate pagination requests while `isLoadingMore` is active or when reaching the end of the catalogue (`hasMore == false`).
-  * **Non-Destructive Pagination Errors**: Network failures during pagination preserve all already loaded products and display a retryable footer banner rather than wiping the screen.
-  * **Filter Reset**: Selecting a new category or submitting a new search resets pagination offset (`skip = 0`) cleanly.
-
-### 4. Presentation & Responsive UI
-* **Responsive Layout**: Computes grid columns dynamically using `Breakpoints.gridColumnCount(width)` (2 columns on mobile, 3–4 columns on tablets/landscape, 5 on wide screens).
-* **Shimmer Skeleton**: `ProductGridSkeleton` displays an animated pulsing placeholder matching card geometry during initial data loads.
-* **Product Card**:
-  * Product thumbnail with `CachedNetworkImage` and placeholder/fallback widgets.
-  * Bold orange discount percentage badge (e.g. `-20%`).
-  * Stock status tag (In stock, Only N left, or Out of stock).
-  * 2-line title with ellipsis, category badge, star rating, effective price, and struck-through original price.
-* **Category Chips**: Horizontal scrollable list with an "All" chip and animated selection states.
-* **Search & Sort Bar**: Search input with clear button, keyboard submission, and a sort bottom sheet (`ProductSortBottomSheet`).
-* **Empty & Error States**: Contextual `AppEmptyView` with reset button and `AppErrorView` with retry action.
-* **Accessibility**: Minimum **48dp** interactive touch targets enforced across all chips, buttons, and inputs.
-
----
-
-## 8. Product Details Architecture (Phase 4)
-
-ShopSphere implements a complete, responsive product details experience consuming DummyJSON's single product endpoint (`GET /products/{id}`) and displaying rich product metadata, an interactive image gallery, specifications, and customer reviews:
-
-### 1. Domain Layer (`lib/features/products/domain/`)
-* **Entities**:
-  * `Product`: Extended to support full detail fields defensively: `sku`, `weight`, `dimensions` (`ProductDimensions`), `warrantyInformation`, `shippingInformation`, `returnPolicy`, `minimumOrderQuantity`, `meta` (`ProductMeta`), and `reviews` (`List<Review>`).
-  * `Review`: Pure Dart entity encapsulating `rating`, `comment`, `reviewerName`, `reviewerEmail`, and `date` with defensive ISO 8601 date parsing (`parsedDate`) and formatted display strings (`formattedDate`).
-  * `ProductDimensions`: Pure Dart entity for `width`, `height`, and `depth` with computed `formatted` string (e.g. `10.0 × 15.0 × 5.0 cm`).
-  * `ProductMeta`: Pure Dart entity for barcode, QR code, and creation/update timestamps.
-* **Use Cases**:
-  * `GetProductByIdUseCase`: Retrieves single product details via `ProductRepository.getProductById(id)` with typed `Result<Product>` error handling.
-
-### 2. Data Layer (`lib/features/products/data/`)
-* **Models**:
-  * `ProductModel`: Defensive parsing of optional fields; missing or malformed fields safely fallback without throwing runtime exceptions.
-  * `ReviewModel`, `ProductDimensionsModel`, `ProductMetaModel`: Serialization and deserialization with null safety and trimming.
-* **Remote Data Source**:
-  * `ProductRemoteDataSource.getProductById(id)` consumes `GET /products/{id}` using the centralized Dio client.
-* **Repository Implementation**:
-  * `ProductRepositoryImpl.getProductById(id)` validates product ID (`id > 0`) and maps Dio/network exceptions through `ErrorHandler` to typed `Failure` results.
-
-### 3. State Management & Lifecycle
-* **Riverpod 3 Controller**:
-  * `ProductDetailNotifier`: Managed via `NotifierProvider.autoDispose.family<ProductDetailNotifier, ProductDetailState, int>`.
-  * **State**: `ProductDetailState` encapsulating explicit statuses: `initial`, `loading`, `loaded`, `error`, and `invalidId`.
-  * **Stale Response Protection**: Request sequence counter (`_activeRequestId`) prevents out-of-order asynchronous responses from overwriting newer routes or state.
-  * **Disposal & Lifecycle**: `ref.mounted` guards ensure that state updates never run against disposed providers.
-  * **Retry Recovery**: `retry()` method allows instantaneous reload on network errors.
-
-### 4. Responsive UI & Visual Presentation
-* **Navigation & Routing**:
-  * `GoRouter` route `/product/:id` protected by top-level authentication guard.
-  * Product card tapping in `HomePage` pushes `/product/${product.id}`.
-  * Standard Material 3 AppBar with accessible Back navigation action (`context.pop()` or fallback `/home`).
-  * Invalid product IDs (non-numeric, `<= 0`) display a dedicated `AppEmptyView` with return-to-catalogue action.
-* **Responsive Layout**:
-  * **Compact / Mobile** (`< 600 dp`): Vertical flow with sticky AppBar, swipeable image gallery, summary details, specifications card, and reviews list.
-  * **Medium / Tablet / Desktop** (`>= 600 dp`): Intelligent two-column layout with fixed-ratio image gallery on the left and scrollable product details, specifications, and reviews on the right.
-* **Interactive Image Gallery (`ProductImageGallery`)**:
-  * Swipeable `PageView` with smooth animated indicator dots.
-  * Thumbnail carousel for rapid image switching.
-  * High-resolution image caching with `CachedNetworkImage` and polished fallback on network/asset failure.
-  * Accessible semantic labels indicating current image index (`image X of Y`).
-* **Product Summary (`ProductInfoSection`)**:
-  * Category badge, brand name, and full product title.
-  * Star rating with total review count.
-  * Accurate price formatting showing discounted price, struck-through original price, and bold discount pill (`-X%`).
-  * Dynamic stock badge ("In Stock", "Only N left", "Out of Stock") using verified API values without fabrication.
-* **Specifications Card (`ProductSpecificationsCard`)**:
-  * Renders SKU, dimensions, weight, warranty, shipping terms, return policy, minimum order quantity, and barcode.
-  * Defensive omission: empty or missing fields are completely omitted rather than displaying blank labels.
-* **Customer Reviews (`ProductReviewsList`)**:
-  * Renders authentic customer ratings, reviewer names, review dates, and comments.
-  * Gracefully handles empty reviews with an informative notice.
-
----
-
-## 9. Cart & Checkout Architecture (Phase 5)
-
-ShopSphere implements a feature-first, offline-resilient Cart and Checkout architecture adhering to clean architecture principles:
-
-### 1. Domain Layer (`lib/features/cart/domain/`)
-* **Entities**:
-  * `CartItem`: Immutable entity encapsulating `productId`, `title`, unit `price`, `discountPercentage`, `thumbnail`, `stock`, and `quantity`. Computed getters provide `effectiveUnitPrice`, `lineTotal`, `originalLineTotal`, `totalSavings`, and `isAtStockLimit`.
-  * `Cart`: Immutable container of cart items calculating `totalItems`, `uniqueItemCount`, `subtotal`, `totalDiscount`, `grandTotal`, `isEmpty`, `containsProduct`, and `findByProductId`. Enforces cart-wide limit of **99 total units** via `Cart.maxCapacity`, with reactive getters `isFull`, `remainingCapacity`, and pure method `maxAddableForProduct(stock, productId)` accounting for available inventory, quantity in cart, and cart capacity.
-  * `CheckoutResult`: Domain model capturing server-confirmed order creation (`id`, `total`, `discountedTotal`, `totalProducts`, `totalQuantity`, `userId`).
-* **Repository Contract (`CartRepository`)**:
-  * Pure Dart contract declaring `getCart()`, `addToCart(product, quantity)`, `updateQuantity(productId, quantity)`, `removeFromCart(productId)`, `clearCart()`, and `checkout(userId)`.
-* **Use Cases**:
-  * `GetCartUseCase`: Retrieves active cart.
-  * `AddToCartUseCase`: Adds product or increments quantity without duplicates; enforces cart capacity and stock limit validation.
-  * `UpdateCartItemQuantityUseCase`: Updates quantity, clamps to stock and cart capacity limits, or removes item when quantity reaches 0.
-  * `RemoveFromCartUseCase`: Removes individual product from cart.
-  * `ClearCartUseCase`: Clears all cart items with persistent synchronization.
-  * `CheckoutUseCase`: Submits order to DummyJSON `POST /carts/add` and clears local cart upon confirmed success.
-
-### 2. Data & Persistence Layer (`lib/features/cart/data/`)
-* **Local Persistence (`CartLocalDataSource`)**:
-  * Backed by `SharedPreferences` with storage key `shopsphere_active_cart_v1`.
-  * Serializes active cart as clean JSON; deserializes defensively with automatic recovery fallback on corrupted data to prevent startup crashes.
-  * Ensures cart contents survive app restarts and remain fully operable offline.
-* **Remote Data Source (`CartRemoteDataSource`)**:
-  * Consumes DummyJSON `POST /carts/add` via the centralized Dio client.
-  * Packages cart products with user ID and validates remote HTTP 200/201 responses.
-* **Repository Implementation (`CartRepositoryImpl`)**:
-  * Orchestrates local persistence, capacity validation, and remote order submission.
-  * Validates and returns `ValidationFailure` when cart is full or requested quantity exceeds addable limits.
-  * **Failure Isolation**: A failed remote checkout (network outage, server error) **preserves the local cart**; the cart is only wiped if the remote checkout succeeds.
-
-### 3. State Management (`lib/features/cart/presentation/controllers/`)
-* **Riverpod 3 Controller (`CartNotifier`)**:
-  * Managed via `NotifierProvider<CartNotifier, CartState>`.
-  * State (`CartState`) exposes explicit statuses: `initial`, `loading`, `ready`, `checkingOut`, `checkoutSuccess`, and `error`.
-  * Defensively validates `state.cart.isFull` in `addItem` and `incrementQuantity` to protect against rapid taps and race conditions.
-  * Microtask-based initial load with `_hasInitialLoaded` guard preventing duplicate loads and race conditions.
-  * Reactive `cartItemCountProvider` drives the badge count across the app.
-
-### 4. UI & Responsive Design (`lib/features/cart/presentation/`)
-* **Cart Badge (`CartBadgeIconButton`)**:
-  * Present on AppBar in both `HomePage` (catalogue) and `ProductDetailPage`.
-  * Real-time badge pill showing current item count (`99+` at capacity); tapped icon pushes `/cart`.
-* **Product Detail Add to Cart (`AddToCartSection`)**:
-  * **API Stock Visibility**: Renders real inventory as `"Available stock: N units"`, selected quantity, and maximum additional quantity that can be added in the current cart state.
-  * **Cart Capacity Feedback**: When the cart is full (`totalItems >= 99`), displays an immediate visible inline banner: `"Your cart is full. Remove an item or reduce quantities to add more."` without relying on SnackBars or opening the cart.
-  * **Reactive Button States**: Add to Cart button disables and updates its label with distinct reasons:
-    * `"Cart Full"` when cart capacity limit is reached.
-    * `"Stock Limit Reached"` when all available units of that product are already in cart.
-    * `"Out of Stock"` when product stock is 0.
-  * **Reactive Re-enabling**: When capacity is freed (e.g. from the cart page or another screen), the button and stepper immediately re-enable reactively without requiring a page reload.
-  * **Quantity Stepper Guard**: Increment controls disable once the calculated upper bound is reached, with helpful explanatory hints distinguishing stock bottlenecks from cart capacity bottlenecks.
-  * Floating SnackBar confirmation with immediate "VIEW CART" action on successful addition.
-* **Responsive Cart Page (`CartPage`)**:
-  * **Compact / Mobile** (`< 600 dp`): Vertical scrolling list of item cards followed by sticky order summary.
-  * **Medium / Tablet / Desktop** (`>= 600 dp`): Side-by-side dual-column layout with scrollable item list on the left and elevated order summary on the right.
-  * **Interactive Stepper (`CartItemCard`)**: Increment, decrement, and delete actions with stock limit warnings.
-  * **Clear Cart**: AppBar action prompting a confirmation dialog before discarding items.
-  * **Empty State (`AppEmptyView`)**: Clear illustration and "Explore Products" navigation button.
-
-### 5. Honest Checkout & DummyJSON Limitations
-* **Simulated Checkout**: DummyJSON is a demo mock REST API:
-  * It returns an echo of the cart payload but does not perform real-world financial transactions or persist server-side state.
-  * ShopSphere explicitly labels checkout as **"Place Order (Simulated)"**.
-  * No payment cards, credentials, or mock banking flows are collected.
-  * Successful checkout presents a clear `CheckoutSuccessDialog` displaying the simulated order reference ID, item count, and grand total.
-
----
-
-## 10. Getting Started
+## 8. Getting Started & APK Build
 
 ### Prerequisites
 * Flutter SDK: `3.44.1` (channel `stable`)
 * Dart SDK: `3.12.1`
 * Android Studio / VS Code with Flutter extension
-* Java 21 / OpenJDK (specified in Flutter toolchain)
+* Java 21 / OpenJDK
 
-### Setup & Run Commands
-
+### Commands
 ```bash
 # 1. Clone repository
 git clone https://github.com/Subhadeep-Dhar/flutter_internship.git
@@ -325,38 +217,77 @@ cd flutter_internship
 # 2. Install dependencies
 flutter pub get
 
-# 3. Format code
-dart format .
+# 3. Format code (must exit 0)
+dart format --set-exit-if-changed lib test
 
 # 4. Analyze code (zero issues enforced)
 flutter analyze
 
-# 5. Execute test suite
+# 5. Run test suite
 flutter test
 
-# 6. Launch application
+# 6. Run test suite with coverage
+flutter test --coverage
+
+# 7. Run locally on connected device
 flutter run
+
+# 8. Build release APK
+flutter build apk --release
 ```
 
 ---
 
-## 11. Test Suite Status
+## 9. Testing, Test Count & Coverage Summary
 
-Comprehensive unit and widget tests covering domain entities, data models, local/remote data sources, repository implementations, use cases, auth notifier, product list notifier, product detail notifier, cart notifier, cart persistence, responsive layouts, search debouncing, concurrency protection, and widget interactions:
+* **Test Command**: `flutter test`
+* **Test Count**: **227 passing tests** (0 failures, 0 skipped, 0 errors).
+* **Code Coverage**: **74.79% line coverage** (2,649 lines hit of 3,542 total instrumented lines in `coverage/lcov.info`).
 
-```bash
-flutter test
-```
-* Status: **208 / 208 tests passing**
-* Static Analysis: **0 issues found** across all files.
+### Test Suite Breakdown
+| Feature Area | Test File | Test Count | Scope |
+| :--- | :--- | :---: | :--- |
+| **Core & Error** | `error_handler_test.dart` | 13 | Dio exceptions, HTTP status codes, socket/timeout mapping |
+| **Authentication** | `user_model_test.dart`, `auth_repository_impl_test.dart`, `login_usecase_test.dart`, `auth_notifier_test.dart`, `login_page_test.dart` | 28 | JSON parsing, secure token persistence, single-flight refresh, form validation, widget states |
+| **Products** | `product_model_test.dart`, `category_model_test.dart`, `product_repository_impl_test.dart`, `get_products_usecase_test.dart`, `product_list_notifier_test.dart`, `product_detail_notifier_test.dart`, `product_catalogue_widget_test.dart`, `product_detail_page_test.dart` | 93 | Filtering, search debouncing, pagination lock, 404 recovery, adaptive layouts, 1.3x text scaling |
+| **Cart & Checkout** | `cart_item_test.dart`, `cart_entity_test.dart`, `cart_repository_impl_test.dart`, `cart_usecases_test.dart`, `cart_notifier_test.dart`, `cart_page_test.dart` | 98 | 99-item capacity, stock clamping, offline persistence, simulated checkout, widget steppers |
+| **App Smoke** | `widget_test.dart` | 1 | App launch and splash mount verification |
+| **Total** | **All suites** | **227** | **100% passing across unit, domain, repository, and widget tests** |
 
 ---
 
-## 12. Verified Test Credentials (DummyJSON)
+## 10. Verified Test Credentials (DummyJSON)
 
-The following credentials are provided by DummyJSON for manual testing:
+The application consumes DummyJSON's official mock authentication endpoints:
 * **Username**: `emilys`
 * **Password**: `emilyspass`
 
-*(Note: These credentials are strictly for manual verification and are never hard-coded into application logic).*
+*(Note: Credentials are for manual test evaluation and are never hard-coded into production code).*
 
+---
+
+## 11. Assumptions, Trade-offs & Future Improvements
+
+### Assumptions
+1. **Mock Backend Behaviour**: DummyJSON does not maintain a mutable server database across client sessions. Order submission via `POST /carts/add` is acknowledged with a simulated order reference.
+2. **Cart Capacity Limit**: Standardized to **99 total units** across the cart, aligning mobile UX constraints with practical inventory ceilings.
+
+### Trade-offs
+1. **Single State & DI Framework**: Avoided combining `get_it` or `Provider` with Riverpod. Riverpod handles both dependency injection and state management uniformly.
+2. **Hero Animation Omission**: Omitted Hero transitions between catalogue cards and detail pages to prevent duplicate tag crashes during tablet landscape master-detail co-presence.
+
+### Future Roadmap
+1. **Real Payment Gateway**: Stripe / Razorpay SDK integration for real payment authorization.
+2. **Biometric Authentication**: Local biometric authentication (Fingerprint / Face ID) via `local_auth`.
+3. **Structured Local Database**: Upgrade cart and offline catalogue cache to a typed local database like Drift or Isar.
+
+---
+
+## 12. Author & Submission Details
+
+* **Author**: Subhadeep Dhar
+* **Email**: subhadeepdhar.dev@gmail.com
+* **Repository**: [https://github.com/Subhadeep-Dhar/flutter_internship](https://github.com/Subhadeep-Dhar/flutter_internship)
+* **Date**: 18 October 2026
+* **Assignment Deadline**: 21 October 2026, 11:59 PM IST
+* **Final Verdict**: **READY FOR SUBMISSION PREPARATION**
