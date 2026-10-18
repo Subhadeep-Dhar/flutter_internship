@@ -25,6 +25,18 @@ import '../../features/products/presentation/controllers/product_detail_notifier
 import '../../features/products/presentation/controllers/product_detail_state.dart';
 import '../../features/products/presentation/controllers/product_list_notifier.dart';
 import '../../features/products/presentation/controllers/product_list_state.dart';
+import '../../features/cart/data/datasources/cart_local_data_source.dart';
+import '../../features/cart/data/datasources/cart_remote_data_source.dart';
+import '../../features/cart/data/repositories/cart_repository_impl.dart';
+import '../../features/cart/domain/repositories/cart_repository.dart';
+import '../../features/cart/domain/usecases/add_to_cart_usecase.dart';
+import '../../features/cart/domain/usecases/checkout_usecase.dart';
+import '../../features/cart/domain/usecases/clear_cart_usecase.dart';
+import '../../features/cart/domain/usecases/get_cart_usecase.dart';
+import '../../features/cart/domain/usecases/remove_from_cart_usecase.dart';
+import '../../features/cart/domain/usecases/update_cart_item_quantity_usecase.dart';
+import '../../features/cart/presentation/controllers/cart_notifier.dart';
+import '../../features/cart/presentation/controllers/cart_state.dart';
 import '../network/api_endpoints.dart';
 import '../network/auth_interceptor.dart';
 import '../network/dio_client.dart';
@@ -239,3 +251,63 @@ final productDetailNotifierProvider = NotifierProvider.autoDispose
     .family<ProductDetailNotifier, ProductDetailState, int>(
       ProductDetailNotifier.new,
     );
+
+/// Provider for [CartLocalDataSource].
+final cartLocalDataSourceProvider = Provider<CartLocalDataSource>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return CartLocalDataSourceImpl(prefs);
+});
+
+/// Provider for [CartRemoteDataSource].
+final cartRemoteDataSourceProvider = Provider<CartRemoteDataSource>((ref) {
+  final dio = ref.watch(dioProvider);
+  return CartRemoteDataSourceImpl(dio);
+});
+
+/// Provider for [CartRepository].
+final cartRepositoryProvider = Provider<CartRepository>((ref) {
+  final local = ref.watch(cartLocalDataSourceProvider);
+  final remote = ref.watch(cartRemoteDataSourceProvider);
+  return CartRepositoryImpl(localDataSource: local, remoteDataSource: remote);
+});
+
+/// Provider for [GetCartUseCase].
+final getCartUseCaseProvider = Provider<GetCartUseCase>((ref) {
+  return GetCartUseCase(ref.watch(cartRepositoryProvider));
+});
+
+/// Provider for [AddToCartUseCase].
+final addToCartUseCaseProvider = Provider<AddToCartUseCase>((ref) {
+  return AddToCartUseCase(ref.watch(cartRepositoryProvider));
+});
+
+/// Provider for [UpdateCartItemQuantityUseCase].
+final updateCartItemQuantityUseCaseProvider =
+    Provider<UpdateCartItemQuantityUseCase>((ref) {
+      return UpdateCartItemQuantityUseCase(ref.watch(cartRepositoryProvider));
+    });
+
+/// Provider for [RemoveFromCartUseCase].
+final removeFromCartUseCaseProvider = Provider<RemoveFromCartUseCase>((ref) {
+  return RemoveFromCartUseCase(ref.watch(cartRepositoryProvider));
+});
+
+/// Provider for [ClearCartUseCase].
+final clearCartUseCaseProvider = Provider<ClearCartUseCase>((ref) {
+  return ClearCartUseCase(ref.watch(cartRepositoryProvider));
+});
+
+/// Provider for [CheckoutUseCase].
+final checkoutUseCaseProvider = Provider<CheckoutUseCase>((ref) {
+  return CheckoutUseCase(ref.watch(cartRepositoryProvider));
+});
+
+/// Central [NotifierProvider] managing active shopping cart state and checkout.
+final cartNotifierProvider = NotifierProvider<CartNotifier, CartState>(
+  CartNotifier.new,
+);
+
+/// Computed provider delivering total quantity of all items in the cart for badges.
+final cartItemCountProvider = Provider<int>((ref) {
+  return ref.watch(cartNotifierProvider.select((state) => state.totalItems));
+});

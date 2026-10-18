@@ -8,6 +8,7 @@ import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
 import '../features/products/presentation/pages/home_page.dart';
 import '../features/products/presentation/pages/product_detail_page.dart';
+import '../features/cart/presentation/pages/cart_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 
 /// Centralized route paths for ShopSphere.
@@ -63,6 +64,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.profile,
         name: 'profile',
         builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.cart,
+        name: 'cart',
+        builder: (context, state) => const CartPage(),
       ),
       GoRoute(
         path: AppRoutes.productDetails,
