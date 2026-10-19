@@ -163,8 +163,16 @@ class ProductCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: product.isInStock
-                                ? AppColors.saleOrangeContainer
-                                : AppColors.errorContainer,
+                                ? (isDark
+                                      ? AppColors.darkSaleOrange.withValues(
+                                          alpha: 0.25,
+                                        )
+                                      : AppColors.saleOrangeContainer)
+                                : (isDark
+                                      ? AppColors.darkErrorContainer.withValues(
+                                          alpha: 0.4,
+                                        )
+                                      : AppColors.errorContainer),
                             borderRadius: BorderRadius.circular(
                               AppSpacing.radiusXs,
                             ),
@@ -173,10 +181,14 @@ class ProductCard extends StatelessWidget {
                             product.stockStatusLabel,
                             style: TextStyle(
                               color: product.isInStock
-                                  ? AppColors.onSaleOrangeContainer
-                                  : AppColors.error,
+                                  ? (isDark
+                                        ? AppColors.darkSaleOrange
+                                        : AppColors.onSaleOrangeContainer)
+                                  : (isDark
+                                        ? AppColors.darkError
+                                        : AppColors.error),
                               fontSize: 10.0,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),

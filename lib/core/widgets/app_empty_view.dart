@@ -23,6 +23,7 @@ class AppEmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Center(
       child: Padding(
@@ -34,10 +35,16 @@ class AppEmptyView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: AppColors.ivorySurfaceVariant,
+                color: isDark
+                    ? AppColors.darkSurfaceVariant
+                    : AppColors.ivorySurfaceVariant,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 48.0, color: AppColors.mutedSage),
+              child: Icon(
+                icon,
+                size: 48.0,
+                color: isDark ? AppColors.darkMutedSage : AppColors.mutedSage,
+              ),
             ),
             AppSpacing.gapLg,
             Text(
@@ -45,6 +52,9 @@ class AppEmptyView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.textPrimary,
               ),
             ),
             AppSpacing.gapSm,
@@ -52,7 +62,11 @@ class AppEmptyView extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : const Color(0xFF2E3831),
+                fontWeight: FontWeight.w500,
+                height: 1.4,
               ),
             ),
             if (onAction != null && actionLabel != null) ...[
@@ -60,6 +74,14 @@ class AppEmptyView extends StatelessWidget {
               OutlinedButton(
                 onPressed: onAction,
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark
+                      ? AppColors.darkForestGreen
+                      : AppColors.forestGreen,
+                  side: BorderSide(
+                    color: isDark
+                        ? AppColors.darkForestGreen
+                        : AppColors.forestGreen,
+                  ),
                   minimumSize: const Size(140.0, AppSpacing.minTapTarget),
                 ),
                 child: Text(actionLabel!),

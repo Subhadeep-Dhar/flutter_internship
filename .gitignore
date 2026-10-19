@@ -50,3 +50,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+
+# Release APKs
+*.apk
+
+# Submission artifacts & local evidence
+Prosessed_Flutter_Subhadeep_Dhar/
+

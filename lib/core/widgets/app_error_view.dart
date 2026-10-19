@@ -23,6 +23,12 @@ class AppErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final errorColor = isDark ? const Color(0xFFFFB4AB) : AppColors.error;
+    final errorBgColor = isDark
+        ? const Color(0xFF93000A).withValues(alpha: 0.35)
+        : AppColors.errorContainer;
 
     return Center(
       child: Padding(
@@ -34,10 +40,10 @@ class AppErrorView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+                color: errorBgColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 48.0, color: theme.colorScheme.error),
+              child: Icon(icon, size: 48.0, color: errorColor),
             ),
             AppSpacing.gapLg,
             Text(
@@ -45,6 +51,9 @@ class AppErrorView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.textPrimary,
               ),
             ),
             AppSpacing.gapSm,
@@ -52,7 +61,11 @@ class AppErrorView extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : const Color(0xFF2E3831),
+                fontWeight: FontWeight.w500,
+                height: 1.4,
               ),
             ),
             if (onRetry != null) ...[
@@ -62,8 +75,12 @@ class AppErrorView extends StatelessWidget {
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text(retryLabel),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.forestGreen,
-                  foregroundColor: Colors.white,
+                  backgroundColor: isDark
+                      ? AppColors.darkForestGreen
+                      : AppColors.forestGreen,
+                  foregroundColor: isDark
+                      ? AppColors.darkBackground
+                      : Colors.white,
                   minimumSize: const Size(140.0, AppSpacing.minTapTarget),
                 ),
               ),

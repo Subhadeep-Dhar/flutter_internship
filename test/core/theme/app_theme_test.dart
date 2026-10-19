@@ -46,7 +46,7 @@ void main() {
       expect(theme.useMaterial3, isTrue);
       expect(theme.colorScheme.primary, AppColors.darkForestGreen);
       expect(theme.scaffoldBackgroundColor, AppColors.darkBackground);
-      expect(theme.colorScheme.error, AppColors.error);
+      expect(theme.colorScheme.error, AppColors.darkError);
     });
 
     test(

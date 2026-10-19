@@ -8,10 +8,10 @@ A production-quality Flutter e-commerce application consuming the [DummyJSON](ht
 
 **ShopSphere** is a lightweight, responsive e-commerce mobile application built with strict **Clean Architecture**, **Riverpod 3** state management, and an earthy, premium Material 3 design system. It delivers end-to-end user journeys including secure token-based authentication, paginated catalogue browsing with search and category filters, rich product detail previews with customer reviews, real-time reactive cart capacity and stock constraints, offline cart persistence, and simulated checkout.
 
-* **Repository**: [https://github.com/Subhadeep-Dhar/flutter_internship](https://github.com/Subhadeep-Dhar/flutter_internship)
+* **Repository**: [https://github.com/Subhadeep-Dhar/prosessed-flutter-assignment](https://github.com/Subhadeep-Dhar/prosessed-flutter-assignment)
 * **SDK Environment**: Flutter **3.44.1** (channel `stable`) • Dart SDK **3.12.1**
 * **Target Platforms**: Android (minSdk 26+), iOS, Web, Desktop
-* **Release APK**: [GitHub Releases](https://github.com/Subhadeep-Dhar/flutter_internship/releases) *(Generate locally via `flutter build apk --release`)*
+* **Release APK**: [GitHub Releases](https://github.com/Subhadeep-Dhar/prosessed-flutter-assignment/releases) *(Generate locally via `flutter build apk --release`)*
 * **Video Walkthrough**: *(Demo recording covering Auth, Catalogue, Details, Cart, Checkout, and Offline Error Scenarios)*
 
 ---
@@ -241,18 +241,18 @@ flutter build apk --release
 ## 9. Testing, Test Count & Coverage Summary
 
 * **Test Command**: `flutter test`
-* **Test Count**: **227 passing tests** (0 failures, 0 skipped, 0 errors).
-* **Code Coverage**: **74.79% line coverage** (2,649 lines hit of 3,542 total instrumented lines in `coverage/lcov.info`).
+* **Test Count**: **257 passing tests** (0 failures, 0 skipped, 0 errors).
+* **Code Coverage**: **76.76% line coverage** (2,930 lines hit of 3,817 total instrumented lines in `coverage/lcov.info`).
 
 ### Test Suite Breakdown
 | Feature Area | Test File | Test Count | Scope |
 | :--- | :--- | :---: | :--- |
-| **Core & Error** | `error_handler_test.dart` | 13 | Dio exceptions, HTTP status codes, socket/timeout mapping |
-| **Authentication** | `user_model_test.dart`, `auth_repository_impl_test.dart`, `login_usecase_test.dart`, `auth_notifier_test.dart`, `login_page_test.dart` | 28 | JSON parsing, secure token persistence, single-flight refresh, form validation, widget states |
-| **Products** | `product_model_test.dart`, `category_model_test.dart`, `product_repository_impl_test.dart`, `get_products_usecase_test.dart`, `product_list_notifier_test.dart`, `product_detail_notifier_test.dart`, `product_catalogue_widget_test.dart`, `product_detail_page_test.dart` | 93 | Filtering, search debouncing, pagination lock, 404 recovery, adaptive layouts, 1.3x text scaling |
-| **Cart & Checkout** | `cart_item_test.dart`, `cart_entity_test.dart`, `cart_repository_impl_test.dart`, `cart_usecases_test.dart`, `cart_notifier_test.dart`, `cart_page_test.dart` | 98 | 99-item capacity, stock clamping, offline persistence, simulated checkout, widget steppers |
+| **Core, Network & Theme** | `error_handler_test.dart`, `api_endpoints_test.dart`, `auth_interceptor_test.dart`, `auth_interceptor_advanced_test.dart`, `sanitized_logger_test.dart`, `app_theme_test.dart`, `breakpoints_test.dart`, `debouncer_test.dart` | 42 | Dio exceptions, HTTP status codes, socket/timeout mapping, JWT interceptor, theme tokens, responsive breakpoints, debounce timer |
+| **Authentication & Profile** | `user_model_test.dart`, `auth_tokens_model_test.dart`, `auth_local_data_source_test.dart`, `auth_remote_data_source_test.dart`, `auth_repository_impl_test.dart`, `auth_usecases_test.dart`, `auth_notifier_test.dart`, `login_page_test.dart`, `profile_page_test.dart`, `logout_confirmation_dialog_test.dart` | 74 | JSON parsing, secure token persistence, single-flight refresh, form validation, profile mapping, logout confirmation dialog, widget states |
+| **Products & Catalogue** | `product_model_test.dart`, `product_detail_model_test.dart`, `category_model_test.dart`, `product_page_response_model_test.dart`, `product_remote_data_source_test.dart`, `product_repository_impl_test.dart`, `product_usecases_test.dart`, `product_card_test.dart`, `product_list_notifier_test.dart`, `product_detail_notifier_test.dart`, `product_catalogue_widget_test.dart`, `product_detail_page_test.dart` | 132 | Filtering, search debouncing, pagination lock, 404 recovery, adaptive layouts, stock limits, cart capacity clamp, 1.3x text scaling, BoxFit.contain thumbnails |
+| **Cart & Persistent Shell** | `cart_item_test.dart`, `cart_model_test.dart`, `cart_local_data_source_test.dart`, `cart_remote_data_source_test.dart`, `cart_repository_impl_test.dart`, `cart_usecases_test.dart`, `cart_notifier_test.dart`, `cart_page_test.dart`, `app_scaffold_shell_test.dart` | 67 | 99-item capacity, stock clamping, offline persistence, simulated checkout, widget steppers, persistent NavigationBar/NavigationRail shell |
 | **App Smoke** | `widget_test.dart` | 1 | App launch and splash mount verification |
-| **Total** | **All suites** | **227** | **100% passing across unit, domain, repository, and widget tests** |
+| **Total** | **All 39 suites** | **257** | **100% passing across unit, domain, repository, and widget tests** |
 
 ---
 

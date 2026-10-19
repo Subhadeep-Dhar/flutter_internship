@@ -626,33 +626,43 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
 
     if (state.paginationErrorMessage != null) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final errorColor = isDark ? AppColors.darkError : AppColors.error;
+      final errorBg = isDark
+          ? AppColors.darkErrorContainer.withValues(alpha: 0.3)
+          : AppColors.errorContainer;
+      final textColor = isDark
+          ? AppColors.darkOnErrorContainer
+          : AppColors.onErrorContainer;
+
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.errorContainer,
+          color: errorBg,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(
+            color: errorColor.withValues(alpha: 0.3),
+            width: 1.0,
+          ),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: AppColors.error,
-              size: 20.0,
-            ),
+            Icon(Icons.error_outline_rounded, color: errorColor, size: 20.0),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
                 state.paginationErrorMessage!,
-                style: const TextStyle(
-                  color: AppColors.onErrorContainer,
+                style: TextStyle(
+                  color: textColor,
                   fontSize: 12.0,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             TextButton(
               onPressed: onRetryPagination,
-              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              style: TextButton.styleFrom(foregroundColor: errorColor),
               child: const Text('Retry'),
             ),
           ],

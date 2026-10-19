@@ -13,6 +13,7 @@ class AppLoadingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Center(
       child: Column(
@@ -22,17 +23,23 @@ class AppLoadingIndicator extends StatelessWidget {
           SizedBox(
             width: size,
             height: size,
-            child: const CircularProgressIndicator(
+            child: CircularProgressIndicator(
               strokeWidth: 3.0,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.forestGreen),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDark ? AppColors.darkForestGreen : AppColors.forestGreen,
+              ),
             ),
           ),
           if (message != null) ...[
             AppSpacing.gapMd,
             Text(
               message!,
+              textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : const Color(0xFF2E3831),
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

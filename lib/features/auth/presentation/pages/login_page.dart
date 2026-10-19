@@ -142,23 +142,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           vertical: AppSpacing.md,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.errorContainer.withValues(
-                            alpha: 0.35,
-                          ),
+                          color: isDark
+                              ? AppColors.darkErrorContainer.withValues(
+                                  alpha: 0.3,
+                                )
+                              : AppColors.errorContainer,
                           borderRadius: BorderRadius.circular(
                             AppSpacing.radiusMd,
                           ),
                           border: Border.all(
-                            color: theme.colorScheme.error.withValues(
-                              alpha: 0.3,
-                            ),
+                            color: isDark
+                                ? AppColors.darkError.withValues(alpha: 0.4)
+                                : AppColors.error.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.error_outline_rounded,
-                              color: theme.colorScheme.error,
+                              color: isDark
+                                  ? AppColors.darkError
+                                  : AppColors.error,
                               size: 20.0,
                             ),
                             AppSpacing.gapMd,
@@ -166,7 +170,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               child: Text(
                                 errorMessage,
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.error,
+                                  color: isDark
+                                      ? AppColors.darkOnErrorContainer
+                                      : AppColors.onErrorContainer,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

@@ -95,7 +95,7 @@ class _LogoutConfirmationDialogState
             backgroundColor: isDark
                 ? AppColors.darkSaleOrange
                 : AppColors.error,
-            foregroundColor: Colors.white,
+            foregroundColor: isDark ? AppColors.darkBackground : Colors.white,
             minimumSize: const Size(96.0, AppSpacing.minTapTarget),
           ),
           child: _isLoading

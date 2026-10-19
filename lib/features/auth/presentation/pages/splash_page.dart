@@ -28,10 +28,11 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.ivoryBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: switch (authState) {
           AuthSessionCheckFailed(:final failure) => Center(
@@ -56,27 +57,35 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                   width: 96.0,
                   height: 96.0,
                   decoration: BoxDecoration(
-                    color: AppColors.forestGreen,
+                    color: isDark
+                        ? AppColors.darkForestGreen
+                        : AppColors.forestGreen,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.forestGreen.withValues(alpha: 0.2),
+                        color:
+                            (isDark
+                                    ? AppColors.darkForestGreen
+                                    : AppColors.forestGreen)
+                                .withValues(alpha: 0.2),
                         blurRadius: 20.0,
                         offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.shopping_bag_outlined,
                     size: 48.0,
-                    color: Colors.white,
+                    color: isDark ? AppColors.darkBackground : Colors.white,
                   ),
                 ),
                 AppSpacing.gapXxl,
                 Text(
                   'ShopSphere',
                   style: theme.textTheme.displayMedium?.copyWith(
-                    color: AppColors.forestGreenDark,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.forestGreenDark,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
                   ),
@@ -85,7 +94,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 Text(
                   'Curated Shopping Experience',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedSage,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.mutedSage,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -98,7 +109,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 Text(
                   'v1.0.0 • Clean Architecture',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.textTertiary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textTertiary,
                   ),
                 ),
                 AppSpacing.gapLg,

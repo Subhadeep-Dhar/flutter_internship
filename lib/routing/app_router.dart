@@ -10,6 +10,7 @@ import '../features/products/presentation/pages/home_page.dart';
 import '../features/products/presentation/pages/product_detail_page.dart';
 import '../features/cart/presentation/pages/cart_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
+import '../core/widgets/app_error_view.dart';
 import 'app_scaffold_shell.dart';
 
 /// Centralized route paths for ShopSphere.
@@ -137,7 +138,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       return null;
     },
-    errorBuilder: (context, state) =>
-        Scaffold(body: Center(child: Text('Route not found: ${state.uri}'))),
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          child: AppErrorView(
+            title: 'Page Not Found',
+            message: 'The requested page "${state.uri}" could not be found.',
+            retryLabel: 'Go to Catalogue',
+            onRetry: () => context.go(AppRoutes.home),
+          ),
+        ),
+      ),
+    ),
   );
 });

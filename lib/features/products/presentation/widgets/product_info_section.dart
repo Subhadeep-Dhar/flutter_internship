@@ -131,11 +131,13 @@ class ProductInfoSection extends StatelessWidget {
               decoration: BoxDecoration(
                 color: !product.isInStock
                     ? (isDark
-                          ? AppColors.error.withValues(alpha: 0.2)
+                          ? AppColors.darkErrorContainer.withValues(alpha: 0.35)
                           : AppColors.errorContainer)
                     : (product.isLowStock
                           ? (isDark
-                                ? AppColors.saleOrange.withValues(alpha: 0.2)
+                                ? AppColors.darkSaleOrange.withValues(
+                                    alpha: 0.2,
+                                  )
                                 : AppColors.saleOrangeContainer)
                           : (isDark
                                 ? AppColors.darkForestGreen.withValues(
@@ -155,7 +157,7 @@ class ProductInfoSection extends StatelessWidget {
                               : Icons.check_circle_outline_rounded),
                     size: 14.0,
                     color: !product.isInStock
-                        ? AppColors.error
+                        ? (isDark ? AppColors.darkError : AppColors.error)
                         : (product.isLowStock
                               ? (isDark
                                     ? AppColors.darkSaleOrange
@@ -171,7 +173,7 @@ class ProductInfoSection extends StatelessWidget {
                       fontSize: 11.0,
                       fontWeight: FontWeight.w700,
                       color: !product.isInStock
-                          ? AppColors.error
+                          ? (isDark ? AppColors.darkError : AppColors.error)
                           : (product.isLowStock
                                 ? (isDark
                                       ? AppColors.darkSaleOrange

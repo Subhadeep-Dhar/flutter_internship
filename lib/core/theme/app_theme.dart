@@ -226,6 +226,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: const BorderSide(color: AppColors.error, width: 2.0),
         ),
+        errorStyle: textTheme.bodySmall?.copyWith(
+          color: AppColors.error,
+          fontWeight: FontWeight.w600,
+        ),
       ),
 
       // Navigation Bar Theme
@@ -352,8 +356,10 @@ class AppTheme {
       onSurface: AppColors.darkTextPrimary,
       surfaceContainerHighest: AppColors.darkSurfaceVariant,
       outline: AppColors.darkBorder,
-      error: AppColors.error,
-      onError: AppColors.onError,
+      error: AppColors.darkError,
+      onError: AppColors.darkOnError,
+      errorContainer: AppColors.darkErrorContainer,
+      onErrorContainer: AppColors.darkOnErrorContainer,
     );
 
     return ThemeData(
@@ -421,7 +427,7 @@ class AppTheme {
         labelStyle: WidgetStateTextStyle.resolveWith((states) {
           if (states.contains(WidgetState.error)) {
             return textTheme.bodyMedium!.copyWith(
-              color: AppColors.error,
+              color: AppColors.darkError,
               fontWeight: FontWeight.w600,
             );
           }
@@ -439,7 +445,7 @@ class AppTheme {
         floatingLabelStyle: WidgetStateTextStyle.resolveWith((states) {
           if (states.contains(WidgetState.error)) {
             return textTheme.bodyMedium!.copyWith(
-              color: AppColors.error,
+              color: AppColors.darkError,
               fontWeight: FontWeight.w700,
             );
           }
@@ -456,7 +462,7 @@ class AppTheme {
         }),
         prefixIconColor: WidgetStateColor.resolveWith((states) {
           if (states.contains(WidgetState.error)) {
-            return AppColors.error;
+            return AppColors.darkError;
           }
           if (states.contains(WidgetState.focused)) {
             return AppColors.darkForestGreen;
@@ -465,7 +471,7 @@ class AppTheme {
         }),
         suffixIconColor: WidgetStateColor.resolveWith((states) {
           if (states.contains(WidgetState.error)) {
-            return AppColors.error;
+            return AppColors.darkError;
           }
           if (states.contains(WidgetState.focused)) {
             return AppColors.darkForestGreen;
@@ -489,11 +495,15 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.darkError, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.error, width: 2.0),
+          borderSide: const BorderSide(color: AppColors.darkError, width: 2.0),
+        ),
+        errorStyle: textTheme.bodySmall?.copyWith(
+          color: AppColors.darkError,
+          fontWeight: FontWeight.w600,
         ),
       ),
 

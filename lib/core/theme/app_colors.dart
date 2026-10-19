@@ -60,6 +60,12 @@ class AppColors {
   static const Color errorContainer = Color(0xFFFCE8E8);
   static const Color onErrorContainer = Color(0xFF4C0F0F);
 
+  // Dark Mode Feedback Colors
+  static const Color darkError = Color(0xFFFFB4AB);
+  static const Color darkOnError = Color(0xFF690005);
+  static const Color darkErrorContainer = Color(0xFF93000A);
+  static const Color darkOnErrorContainer = Color(0xFFFFDAD6);
+
   static const Color success = Color(0xFF26734D);
   static const Color warning = Color(0xFFD97706);
 }

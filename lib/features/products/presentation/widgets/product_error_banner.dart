@@ -24,6 +24,16 @@ class ProductErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final errorColor = isDark ? AppColors.darkError : AppColors.error;
+    final containerColor = isDark
+        ? AppColors.darkErrorContainer.withValues(alpha: 0.3)
+        : AppColors.errorContainer;
+    final borderColor = isDark
+        ? AppColors.darkError.withValues(alpha: 0.4)
+        : AppColors.error.withValues(alpha: 0.3);
+    final textColor = isDark
+        ? AppColors.darkOnErrorContainer
+        : AppColors.onErrorContainer;
 
     return Semantics(
       liveRegion: true,
@@ -36,32 +46,19 @@ class ProductErrorBanner extends StatelessWidget {
           vertical: AppSpacing.xs + 2,
         ),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.errorContainer.withValues(alpha: 0.25)
-              : AppColors.errorContainer,
+          color: containerColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(
-            color: isDark
-                ? AppColors.error.withValues(alpha: 0.5)
-                : AppColors.error.withValues(alpha: 0.3),
-            width: 1.0,
-          ),
+          border: Border.all(color: borderColor, width: 1.0),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.wifi_off_rounded,
-              color: AppColors.error,
-              size: 20.0,
-            ),
+            Icon(Icons.wifi_off_rounded, color: errorColor, size: 20.0),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
                 message,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.onErrorContainer,
+                  color: textColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 12.0,
                 ),
@@ -71,12 +68,12 @@ class ProductErrorBanner extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.xs),
             if (isRetrying)
-              const SizedBox(
+              SizedBox(
                 width: 18.0,
                 height: 18.0,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.0,
-                  valueColor: AlwaysStoppedAnimation(AppColors.error),
+                  valueColor: AlwaysStoppedAnimation(errorColor),
                 ),
               )
             else
@@ -89,7 +86,7 @@ class ProductErrorBanner extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.0),
                 ),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.error,
+                  foregroundColor: errorColor,
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.sm,
@@ -102,9 +99,7 @@ class ProductErrorBanner extends StatelessWidget {
                 key: const ValueKey('banner_dismiss_button'),
                 icon: const Icon(Icons.close_rounded, size: 18.0),
                 tooltip: 'Dismiss error',
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.onErrorContainer,
+                color: textColor,
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(

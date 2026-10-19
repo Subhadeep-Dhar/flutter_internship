@@ -59,6 +59,10 @@ class _AddToCartSectionState extends ConsumerState<AddToCartSection> {
             'Added $quantity × "${widget.product.title}" to cart',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           backgroundColor: isDark
               ? AppColors.darkSurfaceVariant
